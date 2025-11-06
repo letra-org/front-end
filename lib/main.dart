@@ -18,18 +18,18 @@ class _LetraAppState extends State<LetraApp> {
   File? _image;
   final ImagePicker _picker = ImagePicker();
 
-  // 📁 Tạo thư mục "assets/images" trong bộ nhớ app nếu chưa có
+  // Tạo thư mục "assets/images" trong bộ nhớ app nếu chưa có
   Future<Directory> _createAppImagesDir() async {
     final dir = await getApplicationDocumentsDirectory();
     final imagesDir = Directory('${dir.path}/assets/images');
     if (!await imagesDir.exists()) {
       await imagesDir.create(recursive: true);
-      debugPrint("📂 Thư mục đã được tạo: ${imagesDir.path}");
+      debugPrint("Thư mục đã được tạo: ${imagesDir.path}");
     }
     return imagesDir;
   }
 
-  // 💾 Lưu ảnh vào thư mục "assets/images"
+  // Lưu ảnh vào thư mục "assets/images"
   Future<void> _saveImageToLocalAssets(String imagePath) async {
     final imagesDir = await _createAppImagesDir();
     final fileName = 'letra_${DateTime.now().millisecondsSinceEpoch}.png';
@@ -38,13 +38,13 @@ class _LetraAppState extends State<LetraApp> {
     final imageFile = File(imagePath);
     await imageFile.copy(newPath);
 
-    debugPrint("✅ Ảnh đã được lưu vào: $newPath");
+    debugPrint("Ảnh đã được lưu vào: $newPath");
     setState(() {
       _image = File(newPath);
     });
   }
 
-  // 📷 Mở camera
+  // Mở camera
   Future<void> _openCamera() async {
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
@@ -52,7 +52,7 @@ class _LetraAppState extends State<LetraApp> {
     }
   }
 
-  // 🖼️ Mở thư viện ảnh
+  // Mở thư viện ảnh
   Future<void> _openGallery() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -100,7 +100,7 @@ class _LetraAppState extends State<LetraApp> {
                 fit: BoxFit.cover,
               ),
               const SizedBox(height: 10),
-              const Text("✅ Ảnh đã được lưu trong bộ nhớ app!"),
+              const Text("Ảnh đã được lưu trong bộ nhớ app!"),
             ],
           ),
         ),
