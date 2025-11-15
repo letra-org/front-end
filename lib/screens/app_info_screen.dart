@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// import 'dart:ui'; // Không cần thiết
 
 class AppInfoScreen extends StatelessWidget {
   final Function(String) onNavigate;
@@ -10,6 +11,7 @@ class AppInfoScreen extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
+          // Header Bar
           Container(
             color: const Color(0xFF2563EB),
             child: SafeArea(
@@ -35,30 +37,61 @@ class AppInfoScreen extends StatelessWidget {
               ),
             ),
           ),
+          // Content
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
-              children: const [
+              children: [
                 Center(
-                  child: Text(
-                    'Letra',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  // Sửa lỗi cú pháp: Stack không thể là const do Image.asset
+                  child: Stack( 
+                    alignment: Alignment.center,
+                    children: [
+                      // Logo
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 180,
+                        height: 180,
+                      ),
+
+                      // Chữ Letra
+                      const Positioned(
+                        bottom: 5,
+                        child: Text(
+                          'Letra',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 40,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                            shadows: [
+                              Shadow(
+                                blurRadius: 10.0,
+                                color: Colors.black54,
+                                offset: Offset(0, 2.0),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 8),
-                Center(child: Text('Phiên bản 1.0.0')),
-                SizedBox(height: 32),
-                Text(
+                ), // Thiếu dấu phẩy ở đây
+                
+                const SizedBox(height: 8),
+                const Center(child: Text('Phiên bản 1.0.0')),
+                const SizedBox(height: 32),
+                const Text(
                   'Về Letra',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'Letra là ứng dụng du lịch Việt Nam giúp bạn khám phá và chia sẻ những điểm đến tuyệt vời trên khắp đất nước.',
                 ),
-                SizedBox(height: 24),
-                Text(
-                  '© 2024 Letra. All rights reserved.',
+                const SizedBox(height: 24),
+                const Text(
+                  '© 2025 Letra. All rights reserved.',
                   textAlign: TextAlign.center,
                 ),
               ],

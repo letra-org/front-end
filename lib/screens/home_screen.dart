@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import '../widgets/bottom_navigation_bar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,70 +16,91 @@ class _HomeScreenState extends State<HomeScreen> {
   final int _itemsPerPage = 5;
   String _sortOrder = 'newest'; // 'newest' or 'oldest'
 
-  // Mock data for travel posts
-  final List<Map<String, dynamic>> _allPosts = [
-    {
-      'id': 1,
-      'title': 'Vịnh Hạ Long - Kỳ quan thế giới',
-      'location': 'Quảng Ninh',
-      'image': 'https://images.unsplash.com/photo-1528127269322-539801943592?w=800',
-      'date': '2024-11-08',
-      'likes': 234,
-      'comments': 45,
-    },
-    {
-      'id': 2,
-      'title': 'Phố cổ Hội An về đêm',
-      'location': 'Quảng Nam',
-      'image': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800',
-      'date': '2024-11-07',
-      'likes': 189,
-      'comments': 32,
-    },
-    {
-      'id': 3,
-      'title': 'Ruộng bậc thang Sapa',
-      'location': 'Lào Cai',
-      'image': 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=800',
-      'date': '2024-11-06',
-      'likes': 456,
-      'comments': 78,
-    },
-    {
-      'id': 4,
-      'title': 'Cầu Vàng Đà Nẵng',
-      'location': 'Đà Nẵng',
-      'image': 'https://images.unsplash.com/photo-1583504403615-fe7c48c5b9a6?w=800',
-      'date': '2024-11-05',
-      'likes': 567,
-      'comments': 91,
-    },
-    {
-      'id': 5,
-      'title': 'Động Phong Nha',
-      'location': 'Quảng Bình',
-      'image': 'https://images.unsplash.com/photo-1566577134770-93d89dd44b68?w=800',
-      'date': '2024-11-04',
-      'likes': 345,
-      'comments': 56,
-    },
-    // Add more posts for pagination
-    ...List.generate(45, (index) => {
-      'id': 6 + index,
-      'title': 'Địa điểm du lịch ${6 + index}',
-      'location': 'Việt Nam',
-      'image': 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800',
-      'date': '2024-11-0${index % 9 + 1}',
-      'likes': 100 + index * 10,
-      'comments': 20 + index * 2,
-    }),
-  ];
+  List<Map<String, dynamic>> _allPosts = [];
+  bool _isLoading = true;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  // --- HÀM LOAD VÀ PARSE DỮ LIỆU ---
+  Future<void> _loadPosts() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final String rawContent = await rootBundle.loadString('assets/home_status/status.txt');
+      
+      // 1. CHUẨN HÓA: Thay thế tất cả các kiểu xuống dòng về '\n' chuẩn
+      String content = rawContent.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+      // 2. TÁCH KHỐI: Sử dụng RegEx để tìm các khối được phân tách bởi ít nhất 2 dòng trống
+      final List<String> postBlocks = content
+          .split(RegExp(r'\n{2,}')) // Tách bởi 2 hoặc nhiều ký tự xuống dòng
+          .map((e) => e.trim()) 
+          .where((e) => e.isNotEmpty) 
+          .toList();
+      
+      List<Map<String, dynamic>> loadedPosts = [];
+      int postId = 1;
+
+      for (final block in postBlocks) {
+        final Map<String, dynamic> post = {'id': postId++};
+        
+        final lines = block.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+        for (final line in lines) {
+          final parts = line.split(':');
+          if (parts.length >= 2) {
+            final key = parts[0].trim();
+            final value = parts.sublist(1).join(':').trim(); 
+            
+            if (key == 'likes' || key == 'comments') {
+              post[key] = int.tryParse(value) ?? 0;
+            } else {
+              post[key] = value;
+            }
+          }
+        }
+        
+        if (post.containsKey('title') && post.containsKey('image')) {
+            loadedPosts.add(post);
+        }
+      }
+
+      setState(() {
+        _allPosts = loadedPosts;
+        _isLoading = false;
+        _currentPage = 1;
+      });
+
+      // --- DEBUG LOG: KIỂM TRA DỮ LIỆU ĐÃ LOAD ---
+      print('--- DEBUG: DATA LOAD STATUS ---');
+      print('Load thành công ${_allPosts.length} bài viết.');
+      if (_allPosts.isNotEmpty) {
+        _allPosts.forEach((post) => 
+          print('  - Title: ${post['title']}, Date: ${post['date']}'));
+      }
+      print('------------------------------');
+      // ------------------------------------------
+
+    } catch (e) {
+      print('Lỗi khi đọc file assets/home_status/status.txt: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  // --- CÁC GETTER VÀ HÀM LOGIC (Giữ nguyên) ---
   List<Map<String, dynamic>> get _sortedPosts {
     final sorted = List<Map<String, dynamic>>.from(_allPosts);
     sorted.sort((a, b) {
       if (_sortOrder == 'newest') {
-        return b['date'].compareTo(a['date']);
+        return b['date'].compareTo(a['date']); 
       } else {
         return a['date'].compareTo(b['date']);
       }
@@ -87,11 +109,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Map<String, dynamic>> get _currentPosts {
+    if (_allPosts.isEmpty) return [];
+
+    final sortedPosts = _sortedPosts;
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
-    return _sortedPosts.sublist(
+    
+    return sortedPosts.sublist(
       startIndex,
-      endIndex > _sortedPosts.length ? _sortedPosts.length : endIndex,
+      endIndex > sortedPosts.length ? sortedPosts.length : endIndex,
     );
   }
 
@@ -110,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // --- PHẦN BUILD UI (ĐÃ THÊM AVATAR) ---
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -117,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Column(
         children: [
-          // Header
+          // Header 
           Container(
             color: const Color(0xFF2563EB),
             child: SafeArea(
@@ -128,39 +155,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Row(
                       children: [
-                        // Logo
+                        // Avatar (ĐÃ CẬP NHẬT)
                         Container(
                           width: 40,
                           height: 40,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
+                          decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: Center(
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'L',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/user/avatar.jpg', // ĐƯỜNG DẪN MỚI
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey,
+                                  child: const Icon(Icons.person, color: Colors.white),
+                                );
+                              },
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Search bar
+                        // Search bar 
                         Expanded(
                           child: Container(
                             height: 40,
@@ -179,16 +196,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Sort button
+                        // Sort button 
                         IconButton(
-                          icon: const Icon(Icons.sort, color: Colors.white),
+                          icon: Icon(
+                            _sortOrder == 'newest' ? Icons.arrow_upward : Icons.arrow_downward, 
+                            color: Colors.white
+                          ),
                           onPressed: _toggleSort,
                           tooltip: _sortOrder == 'newest' ? 'Mới nhất' : 'Cũ nhất',
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Friends button
+                    // Friends button 
                     SizedBox(
                       width: double.infinity,
                       height: 36,
@@ -209,93 +229,98 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           // Posts List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _currentPosts.length,
-              itemBuilder: (context, index) {
-                final post = _currentPosts[index];
-                return _buildPostCard(post, isDarkMode);
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _allPosts.isEmpty
+                    ? const Center(child: Text('Không có bài viết nào được tìm thấy.'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _currentPosts.length,
+                        itemBuilder: (context, index) {
+                          final post = _currentPosts[index];
+                          return _buildPostCard(post, isDarkMode);
+                        },
+                      ),
           ),
           // Pagination
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-            decoration: BoxDecoration(
-              color: isDarkMode ? Colors.grey[900] : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha((255*0.05).toInt()),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: _currentPage > 1
-                      ? () => _changePage(_currentPage - 1)
-                      : null,
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                ...List.generate(
-                  _totalPages > 5 ? 5 : _totalPages,
-                  (index) {
-                    int pageNum;
-                    if (_totalPages <= 5) {
-                      pageNum = index + 1;
-                    } else if (_currentPage <= 3) {
-                      pageNum = index + 1;
-                    } else if (_currentPage >= _totalPages - 2) {
-                      pageNum = _totalPages - 4 + index;
-                    } else {
-                      pageNum = _currentPage - 2 + index;
-                    }
-                    
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: InkWell(
-                        onTap: () => _changePage(pageNum),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: _currentPage == pageNum
-                                ? const Color(0xFF2563EB)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
+          if (!_isLoading && _totalPages > 1) 
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.grey[900] : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((255 * 0.05).toInt()),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: _currentPage > 1
+                        ? () => _changePage(_currentPage - 1)
+                        : null,
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  ...List.generate(
+                    _totalPages > 5 ? 5 : _totalPages,
+                    (index) {
+                      int pageNum;
+                      if (_totalPages <= 5) {
+                        pageNum = index + 1;
+                      } else if (_currentPage <= 3) {
+                        pageNum = index + 1;
+                      } else if (_currentPage >= _totalPages - 2) {
+                        pageNum = _totalPages - 4 + index;
+                      } else {
+                        pageNum = _currentPage - 2 + index;
+                      }
+                      
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: InkWell(
+                          onTap: () => _changePage(pageNum),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
                               color: _currentPage == pageNum
                                   ? const Color(0xFF2563EB)
-                                  : Colors.grey,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              pageNum.toString(),
-                              style: TextStyle(
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
                                 color: _currentPage == pageNum
-                                    ? Colors.white
-                                    : (isDarkMode ? Colors.white : Colors.black),
+                                    ? const Color(0xFF2563EB)
+                                    : Colors.grey,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                pageNum.toString(),
+                                style: TextStyle(
+                                  color: _currentPage == pageNum
+                                      ? Colors.white
+                                      : (isDarkMode ? Colors.white : Colors.black),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  onPressed: _currentPage < _totalPages
-                      ? () => _changePage(_currentPage + 1)
-                      : null,
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
+                      );
+                    },
+                  ),
+                  IconButton(
+                    onPressed: _currentPage < _totalPages
+                        ? () => _changePage(_currentPage + 1)
+                        : null,
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBarWidget(
@@ -305,6 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Widget _buildPostCard giữ nguyên
   Widget _buildPostCard(Map<String, dynamic> post, bool isDarkMode) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

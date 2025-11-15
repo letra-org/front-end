@@ -60,31 +60,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.security),
-                    title: const Text('Xác thực 2 lớp'),
-                    subtitle: const Text('Tăng cường bảo mật tài khoản'),
-                    trailing: Switch(
-                      value: _twoFactorEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _twoFactorEnabled = value;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.history),
-                    title: const Text('Lịch sử đăng nhập'),
-                    subtitle: const Text('Xem các thiết bị đã đăng nhập'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {},
-                  ),
-                ),
               ],
             ),
           ),

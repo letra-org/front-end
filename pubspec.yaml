@@ -49,6 +49,10 @@ flutter:
   # Add assets here
   assets:
     - assets/images/
+    - assets/images/team/
+    - assets/info/
+    - assets/images/user/
+    - assets/home_status/
     #- assets/icons/
 
 flutter_launcher_icons:
