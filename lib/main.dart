@@ -84,6 +84,13 @@ class _AppNavigatorState extends State<AppNavigator> {
   }
 
   Widget _buildCurrentScreen() {
+    // KHẮC PHỤC LỖI: Tạo hàm bao bọc chỉ chấp nhận 1 tham số String.
+    // Hàm này được sử dụng cho các màn hình (như PhotosScreen) có BottomNavigationBarWidget
+    // để tránh lỗi "No named parameter named 'onNavigate'" do chữ ký hàm không khớp.
+    void navigateSimple(String screen) {
+      _navigateToScreen(screen);
+    }
+
     switch (_currentScreen) {
       case 'welcome':
         return WelcomeScreen(
@@ -106,48 +113,48 @@ class _AppNavigatorState extends State<AppNavigator> {
         );
       case 'home':
         return HomeScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: _navigateToScreen, // Dùng hàm đầy đủ
         );
       case 'photos':
         return PhotosScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple, // Dùng hàm bao bọc đã sửa lỗi
         );
       case 'ai':
         return AIScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple, // Thường AI Screen cũng dùng Bottom Bar
         );
       case 'settings':
         return SettingsScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple, // Thường Settings Screen cũng dùng Bottom Bar
           onLogout: _handleLogout,
         );
       case 'userProfile':
         return UserProfileScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       case 'security':
         return SecurityScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       case 'team':
         return TeamScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       case 'sponsors':
         return SponsorsScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       case 'appInfo':
         return AppInfoScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       case 'emergency':
         return EmergencyLocationScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       case 'friends':
         return FriendsScreen(
-          onNavigate: _navigateToScreen,
+          onNavigate: navigateSimple,
         );
       default:
         return WelcomeScreen(

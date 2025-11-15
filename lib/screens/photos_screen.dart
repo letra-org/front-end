@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
-import '../widgets/bottom_navigation_bar.dart';
+import 'package:path_provider/path_provider.dart'; 
+import 'dart:io'; 
+// Thêm các import cần thiết cho PhotoViewScreen
+import 'package:flutter/services.dart'; 
+import 'package:gallery_saver_plus/gallery_saver.dart'; 
+
+// Import widget điều hướng dưới cùng của bạn
+import '../widgets/bottom_navigation_bar.dart'; 
+
+
+// =================================================================
+// PHOTOS SCREEN (Vẫn là StatefulWidget để quản lý tải ảnh và trạng thái)
+// =================================================================
 
 class PhotosScreen extends StatefulWidget {
+  // Giữ lại onNavigate vì nó được sử dụng trong BottomNavigationBarWidget
   final Function(String) onNavigate;
 
   const PhotosScreen({super.key, required this.onNavigate});
@@ -11,24 +24,68 @@ class PhotosScreen extends StatefulWidget {
 }
 
 class _PhotosScreenState extends State<PhotosScreen> {
-  final List<String> _photos = [
-    'https://images.unsplash.com/photo-1528127269322-539801943592?w=800',
-    'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800',
-    'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=800',
-    'https://images.unsplash.com/photo-1583504403615-fe7c48c5b9a6?w=800',
-    'https://images.unsplash.com/photo-1566577134770-93d89dd44b68?w=800',
-    'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800',
-    'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800',
-    'https://images.unsplash.com/photo-1540611025311-01df3cef54b5?w=800',
-    'https://images.unsplash.com/photo-1583414775011-c14f6e4dfa48?w=800',
-    'https://images.unsplash.com/photo-1555663165-3a8e93a9e727?w=800',
-  ];
+  // Thay đổi List<String> thành List<File>
+  List<File> _photos = [];
+  bool _isLoading = true;
 
+  @override
+  void initState() {
+    super.initState();
+    _loadPhotos(); // Gọi hàm tải ảnh khi khởi tạo State
+  }
+
+  // Hàm tải ảnh từ thư mục cục bộ
+  Future<void> _loadPhotos() async {
+    // 1. Tìm thư mục Documents của ứng dụng
+    final appDocumentsDir = await getApplicationDocumentsDirectory();
+    final photosDir = Directory('${appDocumentsDir.path}/User_photo');
+
+    // 2. Kiểm tra và tạo thư mục nếu chưa có
+    if (!await photosDir.exists()) {
+      await photosDir.create(recursive: true);
+    }
+
+    // 3. Đọc danh sách file trong thư mục
+    final List<File> loadedPhotos = [];
+    try {
+      // Lấy danh sách các đối tượng File/Directory
+      final fileList = photosDir.listSync(recursive: true)
+          // Lọc ra chỉ các file và kiểm tra đuôi file là ảnh
+          .where((item) => item is File && _isImageFile(item.path))
+          .toList();
+      
+      for (var file in fileList) {
+        loadedPhotos.add(file as File);
+      }
+      
+    } catch (e) {
+      debugPrint('Lỗi khi đọc thư mục ảnh: $e');
+    }
+
+    // 4. Cập nhật State
+    if (mounted) { // Kiểm tra để tránh lỗi khi State bị hủy
+      setState(() {
+        _photos = loadedPhotos.reversed.toList(); // Hiển thị ảnh mới nhất lên đầu
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Hàm kiểm tra đơn giản để lọc ra các file ảnh
+  bool _isImageFile(String path) {
+    final lowerPath = path.toLowerCase();
+    return lowerPath.endsWith('.png') ||
+           lowerPath.endsWith('.jpg') ||
+           lowerPath.endsWith('.jpeg');
+  }
+
+  // Hàm mở ảnh (sử dụng FilePath)
   void _openPhoto(int index) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PhotoViewScreen(
-          imageUrl: _photos[index],
+          // Truyền đường dẫn File
+          filePath: _photos[index].path,
         ),
       ),
     );
@@ -36,7 +93,12 @@ class _PhotosScreenState extends State<PhotosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // Hiển thị loading trong khi chờ tải ảnh
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       body: Column(
@@ -72,62 +134,71 @@ class _PhotosScreenState extends State<PhotosScreen> {
           ),
           // Photos Grid
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 1,
-              ),
-              itemCount: _photos.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () => _openPhoto(index),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          _photos[index],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Icon(Icons.image, size: 50),
-                              ),
-                            );
-                          },
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withAlpha((255*0.3).toInt()),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const Positioned(
-                          bottom: 8,
-                          right: 8,
-                          child: Icon(
-                            Icons.zoom_in,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      ],
+            child: _photos.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Không có ảnh nào.\nHãy chụp một bức ảnh!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.all(8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: _photos.length,
+                    itemBuilder: (context, index) {
+                      return GestureDetector(
+                        onTap: () => _openPhoto(index),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Sử dụng Image.file
+                              Image.file( 
+                                _photos[index],
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                      child: Icon(Icons.broken_image, size: 50),
+                                    ),
+                                  );
+                                },
+                              ),
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withAlpha((255 * 0.3).toInt()),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Icon(
+                                  Icons.zoom_in,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -139,13 +210,17 @@ class _PhotosScreenState extends State<PhotosScreen> {
   }
 }
 
-// Full screen photo viewer with zoom and download
+
+// =================================================================
+// PHOTO VIEW SCREEN (Màn hình xem ảnh chi tiết với tính năng lưu)
+// =================================================================
+
 class PhotoViewScreen extends StatefulWidget {
-  final String imageUrl;
+  final String filePath; 
 
   const PhotoViewScreen({
     super.key,
-    required this.imageUrl,
+    required this.filePath,
   });
 
   @override
@@ -163,13 +238,43 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
     super.dispose();
   }
 
-  void _handleDownload() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đang tải ảnh...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  // HÀM: Xử lý lưu ảnh về Gallery SỬ DỤNG gallery_saver_plus
+  void _handleDownload() async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    
+    try {
+      final String filePath = widget.filePath;
+      
+      // Sử dụng GallerySaverPlus.saveImage
+      final bool? success = await GallerySaver.saveImage(
+        filePath,
+        albumName: "User_photo_Gallery", 
+        toDcim: true, 
+      );
+
+      if (success == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã lưu ảnh vào Thư viện thành công!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lỗi khi lưu ảnh. Vui lòng kiểm tra quyền truy cập.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi chung: Không thể lưu file: $e'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -186,12 +291,20 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
               maxScale: 4.0,
               onInteractionUpdate: (details) {
                 final scale = _transformationController.value.getMaxScaleOnAxis();
+                if (scale != 1.0) {
+                    setState(() {
+                      _isZoomed = scale > 1.0;
+                    });
+                }
+              },
+              onInteractionEnd: (details) {
+                final scale = _transformationController.value.getMaxScaleOnAxis();
                 setState(() {
                   _isZoomed = scale > 1.0;
                 });
               },
-              child: Image.network(
-                widget.imageUrl,
+              child: Image.file(
+                File(widget.filePath), 
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return const Center(
@@ -216,7 +329,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withAlpha((255*0.7).toInt()),
+                    Colors.black.withAlpha((255 * 0.7).toInt()),
                     Colors.transparent,
                   ],
                 ),
@@ -236,6 +349,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Spacer(),
+                      // CHỈ hiển thị nút Download khi _isZoomed là TRUE
                       if (_isZoomed)
                         IconButton(
                           icon: const Icon(
@@ -243,7 +357,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
                             color: Colors.white,
                             size: 28,
                           ),
-                          onPressed: _handleDownload,
+                          onPressed: _handleDownload, // Gọi hàm lưu ảnh
                         ),
                     ],
                   ),
@@ -251,7 +365,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
               ),
             ),
           ),
-          // Bottom hint
+          // Bottom hint (Chỉ hiển thị khi KHÔNG zoom)
           if (!_isZoomed)
             Positioned(
               bottom: 50,
@@ -264,11 +378,11 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withAlpha((255*0.7).toInt()),
+                    color: Colors.black.withAlpha((255 * 0.7).toInt()),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
-                    'Phóng to để tải ảnh',
+                    'Phóng to để tải ảnh', 
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
