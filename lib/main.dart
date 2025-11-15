@@ -1,136 +1,181 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/forgot_password_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/photos_screen.dart';
+import 'screens/ai_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/user_profile_screen.dart';
+import 'screens/security_screen.dart';
+import 'screens/team_screen.dart';
+import 'screens/sponsors_screen.dart';
+import 'screens/app_info_screen.dart';
+import 'screens/emergency_location_screen.dart';
+import 'screens/friends_screen.dart';
+import 'providers/theme_provider.dart';
+import 'constants/app_theme.dart';
 
 void main() {
-  runApp(const LetraApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set portrait mode only
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const LetraApp(),
+    ),
+  );
 }
 
-class LetraApp extends StatefulWidget {
+class LetraApp extends StatelessWidget {
   const LetraApp({super.key});
 
   @override
-  State<LetraApp> createState() => _LetraAppState();
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'Letra',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          home: const AppNavigator(),
+        );
+      },
+    );
+  }
 }
 
-class _LetraAppState extends State<LetraApp> {
-  File? _image;
-  final ImagePicker _picker = ImagePicker();
+class AppNavigator extends StatefulWidget {
+  const AppNavigator({super.key});
 
-  // Tạo thư mục "assets/images" trong bộ nhớ app nếu chưa có
-  Future<Directory> _createAppImagesDir() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final imagesDir = Directory('${dir.path}/assets/images');
-    if (!await imagesDir.exists()) {
-      await imagesDir.create(recursive: true);
-      debugPrint("Thư mục đã được tạo: ${imagesDir.path}");
-    }
-    return imagesDir;
-  }
+  @override
+  State<AppNavigator> createState() => _AppNavigatorState();
+}
 
-  // Lưu ảnh vào thư mục "assets/images"
-  Future<void> _saveImageToLocalAssets(String imagePath) async {
-    final imagesDir = await _createAppImagesDir();
-    final fileName = 'letra_${DateTime.now().millisecondsSinceEpoch}.png';
-    final newPath = '${imagesDir.path}/$fileName';
+class _AppNavigatorState extends State<AppNavigator> {
+  String _currentScreen = 'welcome';
+  final Map<String, dynamic> _screenData = {};
 
-    final imageFile = File(imagePath);
-    await imageFile.copy(newPath);
-
-    debugPrint("Ảnh đã được lưu vào: $newPath");
+  void _navigateToScreen(String screen, {Map<String, dynamic>? data}) {
     setState(() {
-      _image = File(newPath);
+      _currentScreen = screen;
+      if (data != null) {
+        _screenData.addAll(data);
+      }
     });
   }
 
-  // Mở camera
-  Future<void> _openCamera() async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-    if (photo != null) {
-      await _saveImageToLocalAssets(photo.path);
-    }
+  void _handleLogout() {
+    setState(() {
+      _currentScreen = 'login';
+      _screenData.clear();
+    });
   }
 
-  // Mở thư viện ảnh
-  Future<void> _openGallery() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      await _saveImageToLocalAssets(image.path);
+  Widget _buildCurrentScreen() {
+    switch (_currentScreen) {
+      case 'welcome':
+        return WelcomeScreen(
+          onLogin: () => _navigateToScreen('login'),
+        );
+      case 'login':
+        return LoginScreen(
+          onLogin: () => _navigateToScreen('home'),
+          onNavigateToRegister: () => _navigateToScreen('register'),
+          onNavigateToForgotPassword: () => _navigateToScreen('forgotPassword'),
+        );
+      case 'register':
+        return RegisterScreen(
+          onRegister: () => _navigateToScreen('home'),
+          onBackToLogin: () => _navigateToScreen('login'),
+        );
+      case 'forgotPassword':
+        return ForgotPasswordScreen(
+          onBackToLogin: () => _navigateToScreen('login'),
+        );
+      case 'home':
+        return HomeScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'photos':
+        return PhotosScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'ai':
+        return AIScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'settings':
+        return SettingsScreen(
+          onNavigate: _navigateToScreen,
+          onLogout: _handleLogout,
+        );
+      case 'userProfile':
+        return UserProfileScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'security':
+        return SecurityScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'team':
+        return TeamScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'sponsors':
+        return SponsorsScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'appInfo':
+        return AppInfoScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'emergency':
+        return EmergencyLocationScreen(
+          onNavigate: _navigateToScreen,
+        );
+      case 'friends':
+        return FriendsScreen(
+          onNavigate: _navigateToScreen,
+        );
+      default:
+        return WelcomeScreen(
+          onLogin: () => _navigateToScreen('login'),
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          backgroundColor: Colors.lightBlueAccent,
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset('assets/images/letra_without_text.png', height: 40),
-              const SizedBox(width: 10),
-              const Text(
-                "Letra App",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+    return Scaffold(
+      body: Center(
+        child: Container(
+          width: 375,
+          height: 812,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 20,
+                spreadRadius: 5,
               ),
             ],
           ),
-        ),
-
-        body: Center(
-          child: _image == null
-              ? const Text(
-            "Chưa có ảnh nào 🫠",
-            style: TextStyle(fontSize: 18),
-          )
-              : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.file(
-                _image!,
-                height: 300,
-                fit: BoxFit.cover,
-              ),
-              const SizedBox(height: 10),
-              const Text("Ảnh đã được lưu trong bộ nhớ app!"),
-            ],
+          child: ClipRect(
+            child: _buildCurrentScreen(),
           ),
-        ),
-
-        // ⚡ Floating buttons
-        floatingActionButton: Stack(
-          children: [
-            Positioned(
-              bottom: 16,
-              left: 32,
-              child: FloatingActionButton.small(
-                heroTag: 'gallery',
-                backgroundColor: Colors.white,
-                onPressed: _openGallery,
-                tooltip: 'Chọn ảnh từ thư viện',
-                child: const Icon(Icons.photo_library, color: Colors.black),
-              ),
-            ),
-            Positioned(
-              bottom: 16,
-              right: 32,
-              child: FloatingActionButton(
-                heroTag: 'camera',
-                backgroundColor: Colors.blueAccent,
-                onPressed: _openCamera,
-                tooltip: 'Chụp ảnh mới',
-                child: const Icon(Icons.camera_alt, color: Colors.white),
-              ),
-            ),
-          ],
         ),
       ),
     );

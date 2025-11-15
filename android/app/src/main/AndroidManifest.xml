@@ -6,9 +6,9 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <application
-        android:label="leltra_app"
+        android:label="Letra"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/logo" >
         <activity
             android:name=".MainActivity"
             android:exported="true"
