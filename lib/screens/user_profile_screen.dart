@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 
-// Chuyển sang StatefulWidget để quản lý trạng thái tải dữ liệu
 class UserProfileScreen extends StatefulWidget {
   final Function(String) onNavigate;
 
@@ -17,165 +19,25 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  // Biến lưu trữ dữ liệu người dùng
-  Map<String, String> _userInfo = {
-    'name': 'Đang tải...',
+  Map<String, dynamic> _userInfo = {
+    'full_name': 'Đang tải...',
     'email': 'Đang tải...',
     'phone': 'Đang tải...',
-    'birthday': 'Đang tải...',
+    'username': 'Đang tải...',
+    'avatar_url': null,
   };
   File? _profileImageFile;
   bool _isLoading = true;
 
-  // Controllers cho TextField
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _birthdayController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadUserInfo();
-  }
-
-  // Hàm đọc file và load ảnh
-  Future<void> _loadUserInfo() async {
-    try {
-      // Lấy đường dẫn thư mục ứng dụng cục bộ (Documents Directory)
-      final directory = await getApplicationDocumentsDirectory();
-      print('Documents Directory Path: ${directory.path}');
-      
-      // 1. Định nghĩa đường dẫn cục bộ và Assets Path
-      final localInfoPath = '${directory.path}/info/user_info.txt';
-      final infoFile = File(localInfoPath);
-      final assetInfoPath = 'assets/info/user_info.txt';
-      
-      final imageDirPath = '${directory.path}/images/user';
-      final imageDir = Directory(imageDirPath);
-      final assetImagePath = 'assets/images/user/avatar.jpg'; 
-      final localImageFile = File('$imageDirPath/avatar.jpg');
-
-      // --- BƯỚC SỬA LỖI: KIỂM TRA VÀ SAO CHÉP DỮ LIỆU MẶC ĐỊNH (ASSET) ---
-      
-      // A. Sao chép info.txt
-      if (!await infoFile.exists()) {
-        print('File user_info.txt chưa tồn tại cục bộ. Bắt đầu sao chép từ Assets...');
-        await Directory('${directory.path}/info').create(recursive: true);
-        
-        try {
-          // Dùng rootBundle để đọc file Asset
-          final assetData = await rootBundle.loadString(assetInfoPath); 
-          await infoFile.writeAsString(assetData);
-          print('✅ Sao chép user_info.txt THÀNH CÔNG.');
-        } catch (e) {
-          print('❌ LỖI SAO CHÉP INFO.TXT. Có thể asset không được tìm thấy: $e');
-        }
-      } else {
-        print('File user_info.txt đã tồn tại cục bộ.');
-      }
-      
-      // B. Sao chép ảnh đại diện (avatar.jpg)
-      if (!await localImageFile.exists()) { 
-        print('Ảnh mặc định chưa tồn tại cục bộ. Bắt đầu sao chép từ Assets...');
-        await imageDir.create(recursive: true);
-        
-        try {
-          // Dùng rootBundle để đọc file Asset
-          final assetImageByte = await rootBundle.load(assetImagePath); 
-          await localImageFile.writeAsBytes(assetImageByte.buffer.asUint8List());
-          print('✅ Sao chép ảnh THÀNH CÔNG.');
-        } catch (e) {
-          print('❌ LỖI SAO CHÉP ẢNH. Có thể asset không được tìm thấy: $e');
-        }
-      } else {
-         print('Ảnh mặc định đã tồn tại cục bộ.');
-      }
-      // -------------------------------------------------------------------
-
-      // 2. Đọc file info.txt (đã được đảm bảo tồn tại)
-      if (await infoFile.exists()) {
-          final content = await infoFile.readAsString();
-          // Tách nội dung và đảm bảo không lấy dòng trống cuối cùng
-          final lines = content.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(); 
-          
-          if (lines.length >= 4) {
-              _userInfo = {
-                'name': lines[0],
-                'email': lines[1],
-                'phone': lines[2],
-                'birthday': lines[3],
-              };
-              print('Đã load thông tin người dùng: ${_userInfo['name']}');
-            } else {
-               print('Lỗi định dạng file info.txt.');
-            }
-      }
-      
-      // 3. Load ảnh đại diện
-      File? foundImage;
-      if (await imageDir.exists()) {
-        final files = await imageDir.list().toList();
-        
-        // Dùng vòng lặp an toàn để tìm và ép kiểu thành File
-        for (var entity in files) {
-          if (entity is File && (entity.path.endsWith('.jpg') || entity.path.endsWith('.png'))) {
-            foundImage = entity;
-            break;
-          }
-        }
-      }
-      _profileImageFile = foundImage;
-
-      // 4. Cập nhật Controllers
-      _nameController.text = _userInfo['name']!;
-      _emailController.text = _userInfo['email']!;
-      _phoneController.text = _userInfo['phone']!;
-      _birthdayController.text = _userInfo['birthday']!;
-      
-    } catch (e) {
-      print('LỖI KHÔNG XỬ LÝ ĐƯỢC (Cấp độ cao hơn): $e');
-      _userInfo['name'] = 'Lỗi tải dữ liệu';
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Hàm xây dựng Avatar dựa trên trạng thái tải/có ảnh
-  Widget _buildAvatar() {
-    // 1. Nếu có file ảnh hợp lệ (từ Documents Directory)
-    if (_profileImageFile != null && _profileImageFile!.existsSync()) {
-      return CircleAvatar(
-        radius: 60,
-        backgroundImage: FileImage(_profileImageFile!),
-      );
-    } 
-    // 2. Nếu không có ảnh, hiển thị chữ cái đầu tiên
-    else if (_userInfo['name'] != null && _userInfo['name']!.isNotEmpty && !_isLoading) {
-      final initial = _userInfo['name']![0].toUpperCase();
-      return CircleAvatar(
-        radius: 60,
-        backgroundColor: const Color(0xFF2563EB),
-        child: Text(
-          initial,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } 
-    // 3. Nếu đang tải hoặc có lỗi
-    else {
-      return const CircleAvatar(
-        radius: 60,
-        backgroundColor: Colors.grey,
-        child: Icon(Icons.person, size: 48, color: Colors.white),
-      );
-    }
+    _loadDataFromDevice();
   }
 
   @override
@@ -183,104 +45,302 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _birthdayController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
+
+  // --- DATA & API LOGIC ---
+
+  Future<String?> _getAuthToken() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        return data['access_token'] as String?;
+      }
+    } catch (e) {
+      print("Lỗi khi lấy token: $e");
+    }
+    return null;
+  }
+
+  Future<void> _loadDataFromDevice() async {
+    setState(() { _isLoading = true; });
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final dataPath = '${directory.path}/data/userdata.js';
+      final imagePath = '${directory.path}/user/avatar.jpg';
+      final dataFile = File(dataPath);
+      final imageFile = File(imagePath);
+
+      if (await dataFile.exists()) {
+        final content = await dataFile.readAsString();
+        final jsonData = json.decode(content);
+        final user = jsonData['user'] as Map<String, dynamic>?;
+
+        if (user != null) {
+          _userInfo = {
+            'full_name': user['full_name'] as String? ?? 'Chưa có tên',
+            'email': user['email'] as String? ?? 'Chưa có email',
+            'phone': user['phone'] as String? ?? 'Chưa có SĐT',
+            'username': user['username'] as String? ?? 'Chưa có username',
+            'avatar_url': user['avatar_url'],
+          };
+        }
+      }
+
+      if (await imageFile.exists()) {
+        _profileImageFile = imageFile;
+      }
+
+      _nameController.text = _userInfo['full_name']!;
+      _emailController.text = _userInfo['email']!;
+      _phoneController.text = _userInfo['phone']!;
+      _usernameController.text = _userInfo['username']!;
+
+    } catch (e) {
+      print('LỖI KHI TẢI DỮ LIỆU: $e');
+    } finally {
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  Future<void> _saveUserInfo() async {
+    final String? token = await _getAuthToken();
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final url = Uri.parse('https://b55k0s8l-8000.asse.devtunnels.ms/users/me');
+      final response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({
+          'full_name': _nameController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'username': _userInfo['username'], // Keep non-editable fields
+        }),
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final updatedUser = json.decode(response.body);
+
+        final directory = await getApplicationDocumentsDirectory();
+        final dataFile = File('${directory.path}/data/userdata.js');
+        Map<String, dynamic> localData = {};
+        if (await dataFile.exists()) {
+          localData = json.decode(await dataFile.readAsString());
+        }
+        localData['user'] = updatedUser;
+        await dataFile.writeAsString(json.encode(localData));
+
+        setState(() {
+          _userInfo['full_name'] = updatedUser['full_name'];
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Cập nhật thông tin thành công!')),
+        );
+      } else {
+        throw Exception('Cập nhật thất bại. Mã lỗi: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Lỗi khi cập nhật: ${e.toString().replaceAll("Exception: ", "")}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
+    }
+  }
+
+
+  Future<void> _takePicture(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? imageFile = await picker.pickImage(source: ImageSource.camera, maxWidth: 800);
+
+    if (imageFile == null) return;
+
+    final String? token = await _getAuthToken();
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final url = Uri.parse('https://b55k0s8l-8000.asse.devtunnels.ms/users/me/avatar');
+      final request = http.MultipartRequest('POST', url); // Changed from PUT to POST
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final updatedUser = json.decode(response.body);
+        final directory = await getApplicationDocumentsDirectory();
+        final dataFile = File('${directory.path}/data/userdata.js');
+        Map<String, dynamic> localData = {};
+
+        if (await dataFile.exists()) {
+          localData = json.decode(await dataFile.readAsString());
+        }
+
+        localData['user'] = updatedUser;
+        await dataFile.writeAsString(json.encode(localData));
+        
+        final newAvatarFile = File('${directory.path}/user/avatar.jpg');
+         if (!await newAvatarFile.parent.exists()) {
+          await newAvatarFile.parent.create(recursive: true);
+        }
+        final savedImage = await File(imageFile.path).copy(newAvatarFile.path);
+
+        setState(() {
+          _userInfo['avatar_url'] = updatedUser['avatar_url'];
+          _profileImageFile = savedImage;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cập nhật ảnh đại diện thành công!')),
+        );
+
+      } else {
+        throw Exception('Tải lên thất bại. Mã lỗi: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
+    }
+  }
+
+
+  // --- UI BUILDING WIDGETS ---
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          // Header
-          Container(
-            color: const Color(0xFF2563EB),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => widget.onNavigate('settings'),
-                    ),
-                    const Text(
-                      'Thông tin cá nhân',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Body
-          Expanded(
-            child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Avatar
-                Center(
-                  child: Stack(
-                    children: [
-                      _buildAvatar(), // Dùng hàm build Avatar mới
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF2563EB),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.camera_alt, color: Colors.white),
-                            onPressed: () {
-                              // TODO: Thêm logic chọn ảnh từ thư viện/chụp mới
-                              // Nếu người dùng chọn ảnh mới, bạn cần lưu ảnh đó 
-                              // vào thư mục imageDir (ví dụ: đè lên avatar.jpg)
-                            },
-                          ),
+          Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: RefreshIndicator(
+                        onRefresh: _loadDataFromDevice,
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            _buildAvatarSection(),
+                            const SizedBox(height: 32),
+                            _buildInfoField('Tên người dùng', _usernameController, isDarkMode, readOnly: true, icon: Icons.account_circle_outlined),
+                            const SizedBox(height: 16),
+                            _buildInfoField('Họ và Tên', _nameController, isDarkMode, icon: Icons.badge_outlined),
+                            const SizedBox(height: 16),
+                            _buildInfoField('Email', _emailController, isDarkMode, icon: Icons.email_outlined),
+                            const SizedBox(height: 16),
+                            _buildInfoField('Số điện thoại', _phoneController, isDarkMode, icon: Icons.phone_outlined),
+                            const SizedBox(height: 32),
+                            ElevatedButton.icon(
+                              onPressed: _saveUserInfo,
+                              icon: const Icon(Icons.save_alt_outlined),
+                              label: const Text('Lưu thay đổi'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+              ),
+            ],
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+        return Container(
+      color: const Color(0xFF2563EB),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => widget.onNavigate('settings'),
+              ),
+              const Text(
+                'Thông tin cá nhân',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 32),
-                // Name
-                _buildInfoField('Tên người dùng', _nameController, isDarkMode),
-                const SizedBox(height: 16),
-                // Email
-                _buildInfoField('Email', _emailController, isDarkMode, readOnly: true), 
-                const SizedBox(height: 16),
-                // Phone
-                _buildInfoField('Số điện thoại', _phoneController, isDarkMode),
-                const SizedBox(height: 16),
-                // Birthday
-                _buildInfoField('Ngày sinh', _birthdayController, isDarkMode),
-                const SizedBox(height: 32),
-                // Update Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Thêm logic lưu dữ liệu mới vào infoFile
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đang cập nhật thông tin...')),
-                      );
-                    },
-                    child: const Text('Cập nhật thông tin'),
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarSection() {
+    return Center(
+      child: Stack(
+        children: [
+          _buildAvatar(),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 48, 
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2563EB),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => _takePicture(context),
+                icon: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+              ),
             ),
           ),
         ],
@@ -288,25 +348,57 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildInfoField(String label, TextEditingController controller, bool isDarkMode, {bool readOnly = false}) {
-    return Column(
+  Widget _buildAvatar() {
+    if (_profileImageFile != null && _profileImageFile!.existsSync()) {
+      return CircleAvatar(
+        radius: 60,
+        backgroundImage: FileImage(_profileImageFile!),
+      );
+    }
+    if (_userInfo['avatar_url'] != null) {
+      return ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: _userInfo['avatar_url']!,
+          placeholder: (context, url) => const CircleAvatar(radius: 60, child: CircularProgressIndicator()),
+          errorWidget: (context, url, error) => CircleAvatar(radius: 60, backgroundImage: const AssetImage('assets/images/user/avatar.jpg')),
+          fit: BoxFit.cover,
+          width: 120,
+          height: 120,
+        ),
+      );
+    }
+    if (_userInfo['full_name'] != null && _userInfo['full_name']!.isNotEmpty && _userInfo['full_name'] != 'Đang tải...') {
+      final initial = _userInfo['full_name']![0].toUpperCase();
+      return CircleAvatar(
+        radius: 60,
+        backgroundColor: const Color(0xFF2563EB),
+        child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+      );
+    }
+    return CircleAvatar(
+      radius: 60,
+      backgroundImage: const AssetImage('assets/images/user/avatar.jpg'),
+    );
+  }
+
+  Widget _buildInfoField(String label, TextEditingController controller, bool isDarkMode, {bool readOnly = false, IconData? icon}) {
+        return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 14,
-            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
           readOnly: readOnly,
+          style: TextStyle(color: readOnly ? Colors.grey[600] : null),
           decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
+            prefixIcon: icon != null ? Icon(icon) : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            filled: readOnly,
+            fillColor: readOnly ? (isDarkMode ? Colors.grey[850] : Colors.grey[200]) : null,
           ),
         ),
       ],

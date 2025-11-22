@@ -174,7 +174,7 @@ class _AppNavigatorState extends State<AppNavigator> {
             color: Theme.of(context).scaffoldBackgroundColor,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withAlpha((255*0.3).toInt()),
                 blurRadius: 20,
                 spreadRadius: 5,
               ),

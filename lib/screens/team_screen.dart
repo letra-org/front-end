@@ -28,7 +28,7 @@ final List<TeamMember> teamData = [
   const TeamMember(
     name: 'Lê Nguyễn Anh Trí',
     role: 'Backend',
-    bio: 'Thêm sau',
+    bio: 'Làm thinh',
     assetPath: 'assets/images/team/Anh_Tri.jpg',
   ),
   const TeamMember(

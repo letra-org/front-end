@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../providers/theme_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final Function(String) onNavigate;
   final VoidCallback onLogout;
 
@@ -12,6 +16,48 @@ class SettingsScreen extends StatelessWidget {
     required this.onNavigate,
     required this.onLogout,
   });
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  String? _avatarUrl;
+  String _fullName = 'Người dùng';
+  String _email = 'Tải thông tin...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        final user = data['user'] as Map<String, dynamic>?;
+
+        if (user != null && mounted) {
+          setState(() {
+            _avatarUrl = user['avatar_url'] as String?;
+            _fullName = user['full_name'] as String? ?? 'Chưa có tên';
+            _email = user['email'] as String? ?? 'Chưa có email';
+          });
+        }
+      }
+    } catch (e) {
+      print("Lỗi khi tải dữ liệu người dùng trên settings_screen: $e");
+      if (mounted) {
+        setState(() {
+          _email = "Không thể tải dữ liệu";
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,22 +95,27 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 // Profile Card
                 GestureDetector(
-                  onTap: () => onNavigate('userProfile'),
+                  onTap: () => widget.onNavigate('userProfile'),
                   child: Card(
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
-                          const CircleAvatar(
-                            radius: 28,
-                            backgroundColor: Color(0xFF2563EB),
-                            child: Text(
-                              'U',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          ClipOval(
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              color: Colors.grey[300],
+                              child: _avatarUrl != null
+                                  ? CachedNetworkImage(
+                                      imageUrl: _avatarUrl!,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          const CircularProgressIndicator(),
+                                      errorWidget: (context, url, error) =>
+                                          Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
+                                    )
+                                  : Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -73,7 +124,7 @@ class SettingsScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Người dùng',
+                                  _fullName,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -81,7 +132,7 @@ class SettingsScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'user@example.com',
+                                  _email,
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
@@ -120,7 +171,7 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text('Chia sẻ vị trí cứu hộ'),
                     subtitle: const Text('Gửi vị trí khi gặp nguy hiểm'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => onNavigate('emergency'),
+                    onTap: () => widget.onNavigate('emergency'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -132,7 +183,7 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text('Bảo mật'),
                     subtitle: const Text('Đổi mật khẩu, xác thực 2 lớp'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => onNavigate('security'),
+                    onTap: () => widget.onNavigate('security'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -146,7 +197,7 @@ class SettingsScreen extends StatelessWidget {
                         title: const Text('Đội ngũ phát triển'),
                         subtitle: const Text('Gặp gỡ những người tạo nên Letra'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => onNavigate('team'),
+                        onTap: () => widget.onNavigate('team'),
                       ),
                       const Divider(height: 1),
                       ListTile(
@@ -154,7 +205,7 @@ class SettingsScreen extends StatelessWidget {
                         title: const Text('Nhà tài trợ'),
                         subtitle: const Text('Các đối tác hỗ trợ dự án'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => onNavigate('sponsors'),
+                        onTap: () => widget.onNavigate('sponsors'),
                       ),
                       const Divider(height: 1),
                       ListTile(
@@ -162,7 +213,7 @@ class SettingsScreen extends StatelessWidget {
                         title: const Text('Thông tin ứng dụng'),
                         subtitle: const Text('Phiên bản, điều khoản, chính sách'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => onNavigate('appInfo'),
+                        onTap: () => widget.onNavigate('appInfo'),
                       ),
                     ],
                   ),
@@ -173,7 +224,7 @@ class SettingsScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 50,
                   child: OutlinedButton(
-                    onPressed: onLogout,
+                    onPressed: widget.onLogout,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
@@ -189,7 +240,7 @@ class SettingsScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBarWidget(
         currentScreen: 'settings',
-        onNavigate: onNavigate,
+        onNavigate: widget.onNavigate,
       ),
     );
   }
