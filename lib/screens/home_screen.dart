@@ -263,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => widget.onNavigate('friends'),
           label: const Text('Friends'),
-          icon: const Icon(Icons.people),
+          icon: const Icon(Icons.add),
           backgroundColor: const Color(0xFF2563EB),
         ),
         bottomNavigationBar: BottomNavigationBarWidget(

@@ -68,7 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final email = _emailController.text;
     final password = _passwordController.text;
-    final loginUrl = Uri.parse('https://b55k0s8l-8000.asse.devtunnels.ms/auth/login');
+    final loginUrl = Uri.parse('https://v41c9dq8-8000.asse.devtunnels.ms/auth/login');
+
 
     try {
       // --- Step 1: Authenticate and get token + user_id ---
@@ -85,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final accessToken = loginData['access_token'];
 
         // --- Step 2: Use token and user_id to get full user details ---
-        final userDetailsUrl = Uri.parse('https://b55k0s8l-8000.asse.devtunnels.ms/users/me');
+        final userDetailsUrl = Uri.parse('https://v41c9dq8-8000.asse.devtunnels.ms/users/me');
         final userDetailsResponse = await http.get(
           userDetailsUrl,
           headers: {

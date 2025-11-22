@@ -96,136 +96,142 @@ class _AIScreenState extends State<AIScreen> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      body: Column(
-        children: [
-          // Header
-          Container(
-            color: const Color(0xFF2563EB),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
+    return PopScope(
+        canPop: false,
+        onPopInvoked: (bool didPop) {
+          if (didPop) return;
+          widget.onNavigate('home');
+        },
+      child:  Scaffold(
+        body: Column(
+          children: [
+            // Header
+            Container(
+              color: const Color(0xFF2563EB),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      // Turtle animation
+                      AnimatedBuilder(
+                        animation: _animationController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(
+                              0,
+                              _animationController.value * 10 - 5,
+                            ),
+                            child: const Text(
+                              '🐢',
+                              style: TextStyle(fontSize: 28),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Trợ lý Du lịch',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'Rùa thông minh 🇻🇳',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Messages
+            Expanded(
+              child: ListView.builder(
                 padding: const EdgeInsets.all(12),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[index];
+                  return _buildMessage(message, isDarkMode);
+                },
+              ),
+            ),
+            // Input
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.grey[900] : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((255*0.05).toInt()),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
                 child: Row(
                   children: [
-                    // Turtle animation
-                    AnimatedBuilder(
-                      animation: _animationController,
-                      builder: (context, child) {
-                        return Transform.translate(
-                          offset: Offset(
-                            0,
-                            _animationController.value * 10 - 5,
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Hỏi AI về du lịch Việt Nam...',
+                          filled: true,
+                          fillColor: isDarkMode
+                              ? Colors.grey[800]
+                              : Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
                           ),
-                          child: const Text(
-                            '🐢',
-                            style: TextStyle(fontSize: 28),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                        );
-                      },
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
                     ),
-                    const SizedBox(width: 12),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Trợ lý Du lịch',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
                         ),
-                        Text(
-                          'Rùa thông minh 🇻🇳',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: _sendMessage,
+                        icon: const Icon(
+                          Icons.send,
+                          color: Colors.white,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-          // Messages
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                return _buildMessage(message, isDarkMode);
-              },
-            ),
-          ),
-          // Input
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isDarkMode ? Colors.grey[900] : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha((255*0.05).toInt()),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Hỏi AI về du lịch Việt Nam...',
-                        filled: true,
-                        fillColor: isDarkMode
-                            ? Colors.grey[800]
-                            : Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      onPressed: _sendMessage,
-                      icon: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBarWidget(
-        currentScreen: 'ai',
-        onNavigate: widget.onNavigate,
-      ),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBarWidget(
+          currentScreen: 'ai',
+          onNavigate: widget.onNavigate,
+        ),
+      )
     );
   }
 

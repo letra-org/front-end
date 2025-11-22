@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'single_purpose_camera_screen.dart'; // Import the new camera screen
 
 class UserProfileScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -119,7 +120,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final url = Uri.parse('https://b55k0s8l-8000.asse.devtunnels.ms/users/me');
+      final url = Uri.parse('https://v41c9dq8-8000.asse.devtunnels.ms/users/me');
       final response = await http.put(
         url,
         headers: {
@@ -171,12 +172,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
 
-  Future<void> _takePicture(BuildContext context) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? imageFile = await picker.pickImage(source: ImageSource.camera, maxWidth: 800);
+  // MODIFIED: This function now navigates to the custom camera screen.
+  Future<void> _handleAvatarChange(BuildContext context) async {
+    // Navigate to the custom camera and wait for a result.
+    final XFile? confirmedImage = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SinglePurposeCameraScreen()),
+    );
 
-    if (imageFile == null) return;
+    // If the user confirmed an image, proceed with the upload.
+    if (confirmedImage != null) {
+      _uploadAvatar(confirmedImage);
+    }
+  }
 
+  // This is the original _takePicture logic, now refactored for uploading.
+  Future<void> _uploadAvatar(XFile imageFile) async {
     final String? token = await _getAuthToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -188,8 +199,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final url = Uri.parse('https://b55k0s8l-8000.asse.devtunnels.ms/users/me/avatar');
-      final request = http.MultipartRequest('POST', url); // Changed from PUT to POST
+      final url = Uri.parse('https://v41c9dq8-8000.asse.devtunnels.ms/users/me/avatar');
+      final request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $token';
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
@@ -338,7 +349,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed: () => _takePicture(context),
+                onPressed: () => _handleAvatarChange(context), // MODIFIED: Calls the new handler function
                 icon: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
               ),
             ),
