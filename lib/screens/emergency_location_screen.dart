@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 
 class EmergencyLocationScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -34,10 +35,10 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
     });
   }
 
-  void _handleCopyLocation() {
-    final locationText = 'Vị trí khẩn cấp: ${_currentLocation['address']}\n'
+  void _handleCopyLocation(AppLocalizations appLocalizations) {
+    final locationText = '${appLocalizations.get("emergency_location_title")}: ${_currentLocation['address']}\n'
         'Tọa độ: ${_currentLocation['lat']}, ${_currentLocation['lng']}\n'
-        'Độ chính xác: ${_currentLocation['accuracy']}';
+        '${appLocalizations.get("accuracy_label")}: ${_currentLocation['accuracy']}';
     
     Clipboard.setData(ClipboardData(text: locationText));
     setState(() {
@@ -55,6 +56,7 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Column(
@@ -74,9 +76,9 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                     ),
                     const Icon(Icons.warning, color: Colors.white),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Chia sẻ vị trí cứu hộ',
-                      style: TextStyle(
+                    Text(
+                      appLocalizations.get('emergency_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -104,10 +106,10 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                     children: [
                       Icon(Icons.warning, color: Colors.red.shade600),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Chức năng này chỉ sử dụng trong trường hợp khẩn cấp',
-                          style: TextStyle(color: Colors.red),
+                          appLocalizations.get('emergency_warning'),
+                          style: const TextStyle(color: Colors.red),
                         ),
                       ),
                     ],
@@ -121,13 +123,13 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.location_on, color: Colors.red),
-                            SizedBox(width: 8),
+                            const Icon(Icons.location_on, color: Colors.red),
+                            const SizedBox(width: 8),
                             Text(
-                              'Vị trí hiện tại của bạn',
-                              style: TextStyle(
+                              appLocalizations.get('current_location_label'),
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -135,9 +137,9 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text('Địa chỉ: ${_currentLocation['address']}'),
-                        Text('Tọa độ: ${_currentLocation['lat']}, ${_currentLocation['lng']}'),
-                        Text('Độ chính xác: ${_currentLocation['accuracy']}'),
+                        Text('${appLocalizations.get("address_label")}: ${_currentLocation['address']}'),
+                        Text('${appLocalizations.get("coordinates_label")}: ${_currentLocation['lat']}, ${_currentLocation['lng']}'),
+                        Text('${appLocalizations.get("accuracy_label")}: ${_currentLocation['accuracy']}'),
                         const SizedBox(height: 16),
                         Row(
                           children: [
@@ -145,7 +147,7 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                               child: ElevatedButton.icon(
                                 onPressed: _locationShared ? null : _handleShareLocation,
                                 icon: Icon(_locationShared ? Icons.check : Icons.send),
-                                label: Text(_locationShared ? 'Đã chia sẻ' : 'Chia sẻ vị trí'),
+                                label: Text(_locationShared ? appLocalizations.get('location_shared_button') : appLocalizations.get('share_location_button')),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red.shade600,
                                   foregroundColor: Colors.white,
@@ -154,7 +156,7 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              onPressed: _handleCopyLocation,
+                              onPressed: () => _handleCopyLocation(appLocalizations),
                               icon: Icon(_copied ? Icons.check : Icons.copy),
                               style: IconButton.styleFrom(
                                 backgroundColor: isDarkMode
@@ -181,10 +183,10 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                       children: [
                         Icon(Icons.check_circle, color: Colors.green.shade600),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Vị trí đã được gửi. Vui lòng giữ điện thoại bật.',
-                            style: TextStyle(color: Colors.green),
+                            appLocalizations.get('location_sent_message'),
+                            style: const TextStyle(color: Colors.green),
                           ),
                         ),
                       ],
@@ -199,13 +201,13 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.phone, color: Color(0xFF2563EB)),
-                            SizedBox(width: 8),
+                            const Icon(Icons.phone, color: Color(0xFF2563EB)),
+                            const SizedBox(width: 8),
                             Text(
-                              'Số điện thoại khẩn cấp',
-                              style: TextStyle(
+                              appLocalizations.get('emergency_contacts_label'),
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -249,7 +251,7 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      contact['name']!,
+                                      appLocalizations.get(contact['name']!.toLowerCase().replaceAll(' ', '_')),
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                     Text(

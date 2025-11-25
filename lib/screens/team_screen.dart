@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 // =================================================================
 // 1. MODEL DỮ LIỆU CỦA THÀNH VIÊN
@@ -63,6 +64,8 @@ class TeamScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Column(
         children: [
@@ -79,9 +82,9 @@ class TeamScreen extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => onNavigate('settings'),
                     ),
-                    const Text(
-                      'Đội ngũ phát triển',
-                      style: TextStyle(
+                    Text(
+                      appLocalizations.get('development_team_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -97,14 +100,14 @@ class TeamScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const Text(
-                  'Đội ngũ phát triển Letra',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                Text(
+                  appLocalizations.get('team_intro_title'),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Ứng dụng được phát triển bởi đội ngũ tận tâm với sứ mệnh kết nối du khách và khám phá vẻ đẹp Việt Nam.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                Text(
+                  appLocalizations.get('team_intro_body'),
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 24),
                 
@@ -143,6 +146,8 @@ class _TeamMemberCardState extends State<TeamMemberCard> {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     // Đoạn mô tả với nút Mở rộng
     final bioWidget = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +176,7 @@ class _TeamMemberCardState extends State<TeamMemberCard> {
           child: Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
-              _isExpanded ? '<< Thu gọn' : '... Xem thêm >>',
+              _isExpanded ? appLocalizations.get('show_less') : appLocalizations.get('show_more'),
               style: TextStyle(
                 color: Theme.of(context).primaryColor,
                 fontWeight: FontWeight.bold,

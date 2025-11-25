@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/bottom_navigation_bar.dart';
 
 class FriendsScreen extends StatelessWidget {
-  final Function(String) onNavigate;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
 
   const FriendsScreen({super.key, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appLocalizations = AppLocalizations.of(context)!;
 
     final friends = [
       {'name': 'Nguyễn Văn A', 'location': 'Hà Nội', 'avatar': 'A'},
@@ -29,13 +32,9 @@ class FriendsScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => onNavigate('home'),
-                    ),
-                    const Text(
-                      'Bạn bè',
-                      style: TextStyle(
+                    Text(
+                      appLocalizations.get('friends_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -56,7 +55,7 @@ class FriendsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm bạn bè...',
+                hintText: appLocalizations.get('search_friends_hint'),
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
@@ -96,7 +95,10 @@ class FriendsScreen extends StatelessWidget {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.message),
-                      onPressed: () {},
+                      onPressed: () => onNavigate('chat', data: {
+                        'friendName': friend['name']!,
+                        'friendAvatar': friend['avatar']!,
+                      }),
                     ),
                   ),
                 );
@@ -104,6 +106,10 @@ class FriendsScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBarWidget(
+        currentScreen: 'friends',
+        onNavigate: onNavigate,
       ),
     );
   }

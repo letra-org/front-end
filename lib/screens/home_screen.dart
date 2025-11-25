@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/bottom_navigation_bar.dart';
+import '../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -14,19 +15,35 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+enum SortCriteria { date, likes }
+enum SortDirection { ascending, descending }
+
 class _HomeScreenState extends State<HomeScreen> {
   int _currentPage = 1;
   final int _itemsPerPage = 5;
-  String _sortOrder = 'newest';
+  final TextEditingController _searchController = TextEditingController();
+
+  SortCriteria _sortCriteria = SortCriteria.date;
+  SortDirection _sortDirection = SortDirection.descending;
 
   List<Map<String, dynamic>> _allPosts = [];
+  List<Map<String, dynamic>> _filteredPosts = [];
   bool _isLoading = true;
   String? _avatarUrl;
+  final Set<int> _likedPostIds = {};
 
   @override
   void initState() {
     super.initState();
     _loadAllData();
+    _searchController.addListener(_filterPosts);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterPosts);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAllData() async {
@@ -76,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (parts.length >= 2) {
             final key = parts[0].trim();
             final value = parts.sublist(1).join(':').trim();
-            if (key == 'likes' || key == 'comments') {
+            if (key == 'likes') {
               post[key] = int.tryParse(value) ?? 0;
             } else {
               post[key] = value;
@@ -90,6 +107,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _allPosts = loadedPosts;
+          _filteredPosts = List.from(_allPosts);
+          _sortPosts(); // Initial sort
           _currentPage = 1;
         });
       }
@@ -98,31 +117,65 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<Map<String, dynamic>> get _sortedPosts {
-    final sorted = List<Map<String, dynamic>>.from(_allPosts);
-    sorted.sort((a, b) {
-      if (_sortOrder == 'newest') {
-        return b['date'].compareTo(a['date']);
+  void _filterPosts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredPosts = _allPosts.where((post) {
+        final title = post['title']?.toLowerCase() ?? '';
+        return title.contains(query);
+      }).toList();
+      _sortPosts();
+      _currentPage = 1;
+    });
+  }
+
+  void _sortPosts() {
+    _filteredPosts.sort((a, b) {
+      int comparison;
+      if (_sortCriteria == SortCriteria.date) {
+        comparison = a['date'].compareTo(b['date']);
       } else {
-        return a['date'].compareTo(b['date']);
+        comparison = (a['likes'] as int).compareTo(b['likes'] as int);
+      }
+      return _sortDirection == SortDirection.ascending ? comparison : -comparison;
+    });
+  }
+
+  void _toggleLike(int postId) {
+    setState(() {
+      final isLiked = _likedPostIds.contains(postId);
+      final postIndex = _allPosts.indexWhere((p) => p['id'] == postId);
+      if (postIndex == -1) return;
+
+      if (isLiked) {
+        _likedPostIds.remove(postId);
+        _allPosts[postIndex]['likes']--;
+      } else {
+        _likedPostIds.add(postId);
+        _allPosts[postIndex]['likes']++;
+      }
+      
+      final filteredPostIndex = _filteredPosts.indexWhere((p) => p['id'] == postId);
+      if (filteredPostIndex != -1) {
+          _filteredPosts[filteredPostIndex]['likes'] = _allPosts[postIndex]['likes'];
       }
     });
-    return sorted;
   }
 
   List<Map<String, dynamic>> get _currentPosts {
-    if (_allPosts.isEmpty) return [];
-    final sortedPosts = _sortedPosts;
+    if (_filteredPosts.isEmpty) return [];
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
-    return sortedPosts.sublist(startIndex, endIndex > sortedPosts.length ? sortedPosts.length : endIndex);
+    return _filteredPosts.sublist(startIndex, endIndex > _filteredPosts.length ? _filteredPosts.length : endIndex);
   }
 
-  int get _totalPages => (_sortedPosts.length / _itemsPerPage).ceil();
+  int get _totalPages => (_filteredPosts.length / _itemsPerPage).ceil();
 
-  void _toggleSort() {
+  void _setSortOrder(SortCriteria criteria, SortDirection direction) {
     setState(() {
-      _sortOrder = _sortOrder == 'newest' ? 'oldest' : 'newest';
+      _sortCriteria = criteria;
+      _sortDirection = direction;
+      _sortPosts();
       _currentPage = 1;
     });
   }
@@ -136,6 +189,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return PopScope(
       canPop: false,
       onPopInvoked: (bool didPop) {
@@ -184,23 +239,40 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const TextField(
+                          child: TextFormField(
+                            controller: _searchController,
                             decoration: InputDecoration(
-                              hintText: 'Search for places, posts...',
+                              hintText: appLocalizations.get('search_hint'),
                               border: InputBorder.none,
-                              prefixIcon: Icon(Icons.search, size: 20),
-                              contentPadding: EdgeInsets.symmetric(vertical: 10),
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      IconButton(
-                        icon: Icon(
-                            _sortOrder == 'newest' ? Icons.arrow_upward : Icons.arrow_downward,
-                            color: Colors.white),
-                        onPressed: _toggleSort,
-                        tooltip: _sortOrder == 'newest' ? 'Newest' : 'Oldest',
+                      PopupMenuButton<Function>(
+                        icon: const Icon(Icons.sort, color: Colors.white),
+                        tooltip: appLocalizations.get('sort_by'),
+                        onSelected: (Function callback) => callback(),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: () => _setSortOrder(SortCriteria.date, SortDirection.descending),
+                            child: Text(appLocalizations.get('sort_by_date_newest')),
+                          ),
+                          PopupMenuItem(
+                            value: () => _setSortOrder(SortCriteria.date, SortDirection.ascending),
+                            child: Text(appLocalizations.get('sort_by_date_oldest')),
+                          ),
+                          PopupMenuItem(
+                            value: () => _setSortOrder(SortCriteria.likes, SortDirection.descending),
+                            child: Text(appLocalizations.get('sort_by_likes_most')),
+                          ),
+                          PopupMenuItem(
+                            value: () => _setSortOrder(SortCriteria.likes, SortDirection.ascending),
+                            child: Text(appLocalizations.get('sort_by_likes_least')),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -210,8 +282,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _allPosts.isEmpty
-                      ? const Center(child: Text('No posts found.'))
+                  : _filteredPosts.isEmpty
+                      ? Center(child: Text(appLocalizations.get('no_posts_found')))
                       : ListView.builder(
                           padding: const EdgeInsets.all(12),
                           itemCount: _currentPosts.length,
@@ -261,8 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => widget.onNavigate('friends'),
-          label: const Text('Friends'),
+          onPressed: () => widget.onNavigate('createPost'),
+          label: Text(appLocalizations.get('create_post_title')),
           icon: const Icon(Icons.add),
           backgroundColor: const Color(0xFF2563EB),
         ),
@@ -309,16 +381,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(post['date'], style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[500] : Colors.grey[500])),
                   ],
                 ),
-                const SizedBox(height: 8),
+                if (post['caption'] != null && post['caption']!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ExpandableText(post['caption']!),
+                  ),
                 Row(
                   children: [
-                    Icon(Icons.favorite_border, size: 20, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: Icon(
+                        _likedPostIds.contains(post['id']) ? Icons.favorite : Icons.favorite_border,
+                        color: _likedPostIds.contains(post['id']) ? Colors.red : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+                      ),
+                      onPressed: () => _toggleLike(post['id'] as int),
+                    ),
                     Text('${post['likes']}', style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600])),
-                    const SizedBox(width: 16),
-                    Icon(Icons.comment_outlined, size: 20, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text('${post['comments']}', style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600])),
                   ],
                 ),
               ],
@@ -327,5 +404,56 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+}
+
+class ExpandableText extends StatefulWidget {
+  final String text;
+  const ExpandableText(this.text, {super.key});
+
+  @override
+  State<ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<ExpandableText> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    return LayoutBuilder(builder: (context, constraints) {
+      final textSpan = TextSpan(text: widget.text);
+      final textPainter = TextPainter(
+        text: textSpan,
+        maxLines: 2,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout(maxWidth: constraints.maxWidth);
+
+      if (textPainter.didExceedMaxLines) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              maxLines: _isExpanded ? null : 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            GestureDetector(
+              onTap: () => setState(() => _isExpanded = !_isExpanded),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: Text(
+                  _isExpanded ? appLocalizations.get('show_less') : appLocalizations.get('show_more'),
+                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+        );
+      } else {
+        return Text(widget.text);
+      }
+    });
   }
 }

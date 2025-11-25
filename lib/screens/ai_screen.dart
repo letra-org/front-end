@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navigation_bar.dart';
+import '../l10n/app_localizations.dart';
 
 class AIScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -23,11 +24,16 @@ class _AIScreenState extends State<AIScreen> with SingleTickerProviderStateMixin
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
     
-    // Welcome message
-    _messages.add({
-      'text': 'Xin chào! Tôi là trợ lý AI du lịch Việt Nam 🐢\nHãy hỏi tôi về các địa điểm du lịch nhé!',
-      'isUser': false,
-      'timestamp': DateTime.now(),
+    // Use a post-frame callback to ensure context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appLocalizations = AppLocalizations.of(context)!;
+      setState(() {
+        _messages.add({
+          'text': appLocalizations.get('ai_welcome_message'),
+          'isUser': false,
+          'timestamp': DateTime.now(),
+        });
+      });
     });
   }
 
@@ -67,35 +73,38 @@ class _AIScreenState extends State<AIScreen> with SingleTickerProviderStateMixin
 
   String _getAIResponse(String message) {
     final lowerMessage = message.toLowerCase();
+    final appLocalizations = AppLocalizations.of(context)!;
     
     if (lowerMessage.contains('hạ long') || lowerMessage.contains('ha long')) {
-      return '🌊 Vịnh Hạ Long là di sản thiên nhiên thế giới tại Quảng Ninh. Bạn nên đi từ tháng 3-5 hoặc 9-11 để thời tiết đẹp nhất. Đừng quên thưởng thức hải sản tươi sống nhé!';
+      return appLocalizations.get('ai_response_halong');
     } else if (lowerMessage.contains('sapa') || lowerMessage.contains('sa pa')) {
-      return '🏔️ Sapa ở Lào Cai nổi tiếng với ruộng bậc thang đẹp nhất vào tháng 9-10. Nhiệt độ mát mẻ quanh năm, nhớ mang áo ấm! Nên thử món thắng cố và cá hồi ở đây.';
+      return appLocalizations.get('ai_response_sapa');
     } else if (lowerMessage.contains('phú quốc')) {
-      return '🏝️ Phú Quốc - đảo ngọc của Việt Nam! Thời điểm lý tưởng là 11-3. Ghé thăm bãi Sao, bãi Dài, và đừng bỏ lỡ chợ đêm Phú Quốc với hải sản tươi ngon!';
+      return appLocalizations.get('ai_response_phuquoc');
     } else if (lowerMessage.contains('hội an')) {
-      return '🏮 Hội An phố cổ thật đẹp vào buổi tối với đèn lồng rực rỡ. Nên đi vào rằm để thả đèn hoa đăng. Thử cao lầu, mì Quảng và bánh bao vạc nhé!';
+      return appLocalizations.get('ai_response_hoian');
     } else if (lowerMessage.contains('đà nẵng') || lowerMessage.contains('da nang')) {
-      return '🌉 Đà Nẵng có Cầu Vàng nổi tiếng, bãi biển Mỹ Khê đẹp nhất Việt Nam. Đi từ tháng 3-8 để tắm biển. Phải thử mì Quảng, bún chả cá!';
+      return appLocalizations.get('ai_response_danang');
     } else if (lowerMessage.contains('nha trang')) {
-      return '🏖️ Nha Trang - thiên đường biển! Lặn biển ngắm san hô ở Hòn Mun, tắm bùn khoáng, thưởng thức hải sản tươi ngon. Đi từ tháng 3-9 nhé!';
+      return appLocalizations.get('ai_response_nhatrang');
     } else if (lowerMessage.contains('đà lạt') || lowerMessage.contains('da lat')) {
-      return '🌸 Đà Lạt - thành phố ngàn hoa! Thời tiết mát mẻ quanh năm. Ghé hồ Xuân Hương, thác Datanla, và nhớ chụp ảnh tại nhà ga cũ. Thử sữa đậu nành, bánh tráng nướng nhé!';
+      return appLocalizations.get('ai_response_dalat');
     } else if (lowerMessage.contains('thời tiết') || lowerMessage.contains('mùa nào')) {
-      return '🌤️ Miền Bắc: mùa thu (9-11) đẹp nhất\n🌞 Miền Trung: 2-8 tránh mưa bão\n☀️ Miền Nam: 11-4 khô ráo, dễ đi\n\nBạn muốn đi đâu để tôi tư vấn chi tiết hơn?';
+      return appLocalizations.get('ai_response_weather');
     } else if (lowerMessage.contains('ăn gì') || lowerMessage.contains('món ăn')) {
-      return '🍜 Món ăn nổi tiếng:\n• Hà Nội: Phở, bún chả, bánh cuốn\n• Đà Nẵng: Mì Quảng, bún chả cá\n• Hội An: Cao lầu, bánh bao vạc\n• Sài Gòn: Bánh mì, hủ tiếu, cơm tấm\n\nBạn đang ở đâu để tôi gợi ý cụ thể?';
+      return appLocalizations.get('ai_response_food');
     } else if (lowerMessage.contains('chi phí') || lowerMessage.contains('giá')) {
-      return '💰 Chi phí ước tính (1 ngày):\n• Ngân sách thấp: 300-500k VNĐ\n• Trung bình: 800k-1.5tr VNĐ\n• Cao cấp: 2-5tr VNĐ\n\nBạn muốn biết chi tiết cho địa điểm nào?';
+      return appLocalizations.get('ai_response_cost');
     } else {
-      return '🐢 Để tôi giúp bạn tốt hơn, hãy hỏi về:\n• Địa điểm du lịch cụ thể\n• Thời tiết và mùa đi\n• Món ăn địa phương\n• Chi phí và lịch trình\n\nVí dụ: "Nên đi Sapa vào tháng mấy?"';
+      return appLocalizations.get('ai_response_default');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return PopScope(
         canPop: false,
         onPopInvoked: (bool didPop) {
@@ -131,20 +140,20 @@ class _AIScreenState extends State<AIScreen> with SingleTickerProviderStateMixin
                         },
                       ),
                       const SizedBox(width: 12),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'AI Trợ lý Du lịch',
-                            style: TextStyle(
+                            appLocalizations.get('ai_assistant_title'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           Text(
-                            'Rùa thông minh 🇻🇳',
-                            style: TextStyle(
+                            appLocalizations.get('ai_assistant_subtitle'),
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
                             ),
@@ -188,7 +197,7 @@ class _AIScreenState extends State<AIScreen> with SingleTickerProviderStateMixin
                       child: TextField(
                         controller: _messageController,
                         decoration: InputDecoration(
-                          hintText: 'Hỏi AI về du lịch Việt Nam...',
+                          hintText: appLocalizations.get('ai_input_hint'),
                           filled: true,
                           fillColor: isDarkMode
                               ? Colors.grey[800]

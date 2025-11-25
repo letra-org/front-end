@@ -3,7 +3,7 @@ location: Quảng Ninh
 image: https://images.unsplash.com/photo-1528127269322-539801943592?w=800
 date: 2025-11-15
 likes: 234
-comments: 45
+caption: Một trong những vịnh đẹp nhất thế giới, được UNESCO công nhận là Di sản Thiên nhiên Thế giới. Chắc chắn phải thử đi thuyền kayak để khám phá các hang động và bãi biển ẩn mình. Một trải nghiệm không thể nào quên!
 
 
 title: Phố cổ Hội An về đêm
@@ -11,7 +11,7 @@ location: Quảng Nam
 image: https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800
 date: 2025-11-14
 likes: 189
-comments: 32
+caption: Hội An trở nên huyền ảo và lung linh hơn bao giờ hết khi màn đêm buông xuống. Những chiếc đèn lồng đủ màu sắc thắp sáng cả khu phố, tạo nên một không gian vô cùng lãng mạn và yên bình.
 
 
 title: Cánh đồng lúa Tam Cốc - Bích Động
@@ -19,5 +19,5 @@ location: Ninh Bình
 image: https://images.unsplash.com/photo-1627995133333-e5d8b8f2d504?w=800
 date: 2025-11-13
 likes: 412
-comments: 98
+caption: Được mệnh danh là "Hạ Long trên cạn", Tam Cốc quyến rũ du khách bởi những cánh đồng lúa xanh mướt hoặc vàng óng xen kẽ giữa các dãy núi đá vôi trùng điệp. Ngồi thuyền xuôi dòng sông Ngô Đồng là cách tốt nhất để cảm nhận trọn vẹn vẻ đẹp nơi đây.
 

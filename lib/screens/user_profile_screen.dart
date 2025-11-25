@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'single_purpose_camera_screen.dart'; // Import the new camera screen
+import '../l10n/app_localizations.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -20,13 +21,7 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  Map<String, dynamic> _userInfo = {
-    'full_name': 'Đang tải...',
-    'email': 'Đang tải...',
-    'phone': 'Đang tải...',
-    'username': 'Đang tải...',
-    'avatar_url': null,
-  };
+  Map<String, dynamic> _userInfo = {};
   File? _profileImageFile;
   bool _isLoading = true;
 
@@ -38,6 +33,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Use a post-frame callback to ensure context is available for AppLocalizations
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeUserData();
+    });
+  }
+
+  void _initializeUserData() {
+    final appLocalizations = AppLocalizations.of(context)!;
+    setState(() {
+      _userInfo = {
+        'full_name': appLocalizations.get('loading'),
+        'email': appLocalizations.get('loading'),
+        'phone': appLocalizations.get('loading'),
+        'username': appLocalizations.get('loading'),
+        'avatar_url': null,
+      };
+    });
     _loadDataFromDevice();
   }
 
@@ -68,6 +80,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _loadDataFromDevice() async {
+    if (!mounted) return; 
+    final appLocalizations = AppLocalizations.of(context)!;
+
     setState(() { _isLoading = true; });
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -83,10 +98,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
         if (user != null) {
           _userInfo = {
-            'full_name': user['full_name'] as String? ?? 'Chưa có tên',
-            'email': user['email'] as String? ?? 'Chưa có email',
-            'phone': user['phone'] as String? ?? 'Chưa có SĐT',
-            'username': user['username'] as String? ?? 'Chưa có username',
+            'full_name': user['full_name'] as String? ?? appLocalizations.get('no_name'),
+            'email': user['email'] as String? ?? appLocalizations.get('no_email'),
+            'phone': user['phone'] as String? ?? appLocalizations.get('no_phone'),
+            'username': user['username'] as String? ?? appLocalizations.get('no_username'),
             'avatar_url': user['avatar_url'],
           };
         }
@@ -104,15 +119,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       print('LỖI KHI TẢI DỮ LIỆU: $e');
     } finally {
-      setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
     }
   }
 
   Future<void> _saveUserInfo() async {
+    final appLocalizations = AppLocalizations.of(context)!;
     final String? token = await _getAuthToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+        SnackBar(content: Text(appLocalizations.get('auth_error'))),
       );
       return;
     }
@@ -120,7 +138,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final url = Uri.parse('https://v41c9dq8-8000.asse.devtunnels.ms/users/me');
+      final url = Uri.parse('https://127.0.0.1:8000/users/me');
       final response = await http.put(
         url,
         headers: {
@@ -154,15 +172,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Cập nhật thông tin thành công!')),
+          SnackBar(content: Text(appLocalizations.get('update_success'))),
         );
       } else {
-        throw Exception('Cập nhật thất bại. Mã lỗi: ${response.statusCode}');
+        throw Exception('${appLocalizations.get('update_failed')}${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Lỗi khi cập nhật: ${e.toString().replaceAll("Exception: ", "")}')),
+        SnackBar(content: Text('${appLocalizations.get('update_error')}${e.toString().replaceAll("Exception: ", "")}')),
       );
     } finally {
       if (mounted) {
@@ -188,10 +206,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   // This is the original _takePicture logic, now refactored for uploading.
   Future<void> _uploadAvatar(XFile imageFile) async {
+    final appLocalizations = AppLocalizations.of(context)!;
     final String? token = await _getAuthToken();
     if (token == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+        SnackBar(content: Text(appLocalizations.get('auth_error'))),
       );
       return;
     }
@@ -199,7 +218,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final url = Uri.parse('https://v41c9dq8-8000.asse.devtunnels.ms/users/me/avatar');
+      final url = Uri.parse('http://letra-org.fly.dev/users/me/avatar');
       final request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $token';
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
@@ -233,16 +252,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _profileImageFile = savedImage;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật ảnh đại diện thành công!')),
+          SnackBar(content: Text(appLocalizations.get('avatar_update_success'))),
         );
 
       } else {
-        throw Exception('Tải lên thất bại. Mã lỗi: ${response.statusCode}');
+        throw Exception('${appLocalizations.get('upload_failed')}${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: ${e.toString().replaceAll("Exception: ", "")}')),
+        SnackBar(content: Text('${appLocalizations.get('generic_error')}${e.toString().replaceAll("Exception: ", "")}')),
       );
     } finally {
       if (mounted) {
@@ -257,6 +276,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Stack(
@@ -272,18 +292,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           children: [
                             _buildAvatarSection(),
                             const SizedBox(height: 32),
-                            _buildInfoField('Tên người dùng', _usernameController, isDarkMode, readOnly: true, icon: Icons.account_circle_outlined),
+                            _buildInfoField(appLocalizations.get('username_label'), _usernameController, isDarkMode, readOnly: true, icon: Icons.account_circle_outlined),
                             const SizedBox(height: 16),
-                            _buildInfoField('Họ và Tên', _nameController, isDarkMode, icon: Icons.badge_outlined),
+                            _buildInfoField(appLocalizations.get('full_name_label'), _nameController, isDarkMode, icon: Icons.badge_outlined),
                             const SizedBox(height: 16),
-                            _buildInfoField('Email', _emailController, isDarkMode, icon: Icons.email_outlined),
+                            _buildInfoField(appLocalizations.get('email_label'), _emailController, isDarkMode, icon: Icons.email_outlined),
                             const SizedBox(height: 16),
-                            _buildInfoField('Số điện thoại', _phoneController, isDarkMode, icon: Icons.phone_outlined),
+                            _buildInfoField(appLocalizations.get('phone_label'), _phoneController, isDarkMode, icon: Icons.phone_outlined),
                             const SizedBox(height: 32),
                             ElevatedButton.icon(
                               onPressed: _saveUserInfo,
                               icon: const Icon(Icons.save_alt_outlined),
-                              label: const Text('Lưu thay đổi'),
+                              label: Text(appLocalizations.get('save_changes_button')),
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -297,7 +317,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withAlpha((255*0.5).toInt()),
               child: const Center(child: CircularProgressIndicator()),
             ),
         ],
@@ -306,6 +326,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildHeader() {
+    final appLocalizations = AppLocalizations.of(context)!;
         return Container(
       color: const Color(0xFF2563EB),
       child: SafeArea(
@@ -318,9 +339,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => widget.onNavigate('settings'),
               ),
-              const Text(
-                'Thông tin cá nhân',
-                style: TextStyle(
+              Text(
+                appLocalizations.get('personal_info_title'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -360,6 +381,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildAvatar() {
+    final appLocalizations = AppLocalizations.of(context)!;
     if (_profileImageFile != null && _profileImageFile!.existsSync()) {
       return CircleAvatar(
         radius: 60,
@@ -378,7 +400,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       );
     }
-    if (_userInfo['full_name'] != null && _userInfo['full_name']!.isNotEmpty && _userInfo['full_name'] != 'Đang tải...') {
+    if (_userInfo['full_name'] != null && _userInfo['full_name']!.isNotEmpty && _userInfo['full_name'] != appLocalizations.get('loading')) {
       final initial = _userInfo['full_name']![0].toUpperCase();
       return CircleAvatar(
         radius: 60,

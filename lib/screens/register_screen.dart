@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final phone = _phoneController.text;
       final password = _passwordController.text;
 
-      final url = Uri.parse('https://v41c9dq8 -8000.asse.devtunnels.ms/users/');
+      final url = Uri.parse('https://letra-org.fly.dev/users/');
 
       try {
         final response = await http
@@ -285,7 +285,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             child: Text(
                               'Đã có tài khoản? Đăng nhập ngay',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
+                                color: Colors.white.withAlpha((255*0.9).toInt()),
                                 fontSize: 15,
                               ),
                             ),

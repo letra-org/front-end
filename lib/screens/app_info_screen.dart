@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'dart:ui'; // Không cần thiết
+import '../l10n/app_localizations.dart';
 
 class AppInfoScreen extends StatelessWidget {
   final Function(String) onNavigate;
@@ -8,6 +8,8 @@ class AppInfoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Column(
         children: [
@@ -24,9 +26,9 @@ class AppInfoScreen extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => onNavigate('settings'),
                     ),
-                    const Text(
-                      'Thông tin ứng dụng',
-                      style: TextStyle(
+                    Text(
+                      appLocalizations.get('app_info_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -43,7 +45,6 @@ class AppInfoScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 Center(
-                  // Sửa lỗi cú pháp: Stack không thể là const do Image.asset
                   child: Stack( 
                     alignment: Alignment.center,
                     children: [
@@ -76,22 +77,22 @@ class AppInfoScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                ), // Thiếu dấu phẩy ở đây
+                ), 
                 
                 const SizedBox(height: 8),
-                const Center(child: Text('Phiên bản 1.0.0')),
+                Center(child: Text(appLocalizations.get('version'))),
                 const SizedBox(height: 32),
-                const Text(
-                  'Về Letra',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  appLocalizations.get('about_letra_title'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Letra là ứng dụng du lịch Việt Nam giúp bạn khám phá và chia sẻ những điểm đến tuyệt vời trên khắp đất nước.',
+                Text(
+                  appLocalizations.get('about_letra_body'),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  '© 2025 Letra. All rights reserved.',
+                Text(
+                  appLocalizations.get('copyright'),
                   textAlign: TextAlign.center,
                 ),
               ],

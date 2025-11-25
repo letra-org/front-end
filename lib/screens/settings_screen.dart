@@ -6,6 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../providers/theme_provider.dart';
+import '../providers/language_provider.dart';
+import '../l10n/app_localizations.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -59,10 +61,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+        final appLocalizations = AppLocalizations.of(context)!;
+
+        return AlertDialog(
+          title: Text(appLocalizations.get('choose_language')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: ClipOval(
+                  child: Image.asset('assets/images/flags/vn.png', width: 32, height: 32, fit: BoxFit.cover),
+                ),
+                title: Text(appLocalizations.get('vietnamese')),
+                onTap: () {
+                  if (languageProvider.currentLocale.languageCode != 'vi') {
+                    languageProvider.toggleLanguage();
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                leading: ClipOval(
+                  child: Image.asset('assets/images/flags/gb.png', width: 32, height: 32, fit: BoxFit.cover),
+                ),
+                title: Text(appLocalizations.get('english')),
+                onTap: () {
+                  if (languageProvider.currentLocale.languageCode != 'en') {
+                    languageProvider.toggleLanguage();
+                  }
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Column(
@@ -70,20 +117,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Header
           Container(
             color: const Color(0xFF2563EB),
-            child: const SafeArea(
+            child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: EdgeInsets.all(12),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Cài đặt',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      appLocalizations.get('settings'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
+                    TextButton(
+                      onPressed: _showLanguageDialog,
+                      child: ClipOval(
+                        child: Image.asset(
+                          languageProvider.currentLocale.languageCode == 'vi'
+                              ? 'assets/images/flags/vn.png'
+                              : 'assets/images/flags/gb.png',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -149,69 +211,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 // Appearance
-                _buildSectionTitle('Giao diện', isDarkMode),
+                _buildSectionTitle(appLocalizations.get('appearance'), isDarkMode),
                 Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.dark_mode),
-                    title: const Text('Chế độ tối'),
-                    subtitle: const Text('Bảo vệ mắt khi sử dụng ban đêm'),
-                    trailing: Switch(
-                      value: isDarkMode,
-                      onChanged: (value) => themeProvider.toggleTheme(),
-                      activeTrackColor: const Color(0xFF2563EB),
-                    ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.dark_mode),
+                        title: Text(appLocalizations.get('dark_mode')),
+                        subtitle: Text(appLocalizations.get('dark_mode_subtitle')),
+                        trailing: Switch(
+                          value: isDarkMode,
+                          onChanged: (value) => themeProvider.toggleTheme(),
+                          activeTrackColor: const Color(0xFF2563EB),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.language),
+                        title: Text(appLocalizations.get('language')),
+                        subtitle: Row(
+                          children: [
+                            ClipOval(
+                              child: Image.asset(
+                                languageProvider.currentLocale.languageCode == 'vi'
+                                    ? 'assets/images/flags/vn.png'
+                                    : 'assets/images/flags/gb.png',
+                                width: 24,
+                                height: 24,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              languageProvider.currentLocale.languageCode == 'vi'
+                                  ? appLocalizations.get('vietnamese')
+                                  : appLocalizations.get('english'),
+                            ),
+                          ],
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: _showLanguageDialog,
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
                 // Emergency
-                _buildSectionTitle('Khẩn cấp', isDarkMode),
+                _buildSectionTitle(appLocalizations.get('emergency_section_title'), isDarkMode),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.warning, color: Colors.red),
-                    title: const Text('Chia sẻ vị trí cứu hộ'),
-                    subtitle: const Text('Gửi vị trí khi gặp nguy hiểm'),
+                    title: Text(appLocalizations.get('emergency_title')),
+                    subtitle: Text(appLocalizations.get('emergency_subtitle')),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => widget.onNavigate('emergency'),
                   ),
                 ),
                 const SizedBox(height: 16),
                 // Account
-                _buildSectionTitle('Tài khoản', isDarkMode),
+                _buildSectionTitle(appLocalizations.get('account'), isDarkMode),
                 Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.lock),
-                    title: const Text('Bảo mật'),
-                    subtitle: const Text('Đổi mật khẩu, xác thực 2 lớp'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => widget.onNavigate('security'),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.lock),
+                        title: Text(appLocalizations.get('security')),
+                        subtitle: Text(appLocalizations.get('security_subtitle')),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => widget.onNavigate('security'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.photo_library),
+                        title: Text(appLocalizations.get('your_photos')),
+                        subtitle: Text(appLocalizations.get('your_photos_subtitle')),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => widget.onNavigate('photos'),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
                 // About
-                _buildSectionTitle('Về chúng tôi', isDarkMode),
+                _buildSectionTitle(appLocalizations.get('about_us'), isDarkMode),
                 Card(
                   child: Column(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.group),
-                        title: const Text('Đội ngũ phát triển'),
-                        subtitle: const Text('Gặp gỡ những người tạo nên Letra'),
+                        title: Text(appLocalizations.get('development_team')),
+                        subtitle: Text(appLocalizations.get('development_team_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('team'),
                       ),
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.star),
-                        title: const Text('Nhà tài trợ'),
-                        subtitle: const Text('Các đối tác hỗ trợ dự án'),
+                        title: Text(appLocalizations.get('sponsors')),
+                        subtitle: Text(appLocalizations.get('sponsors_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('sponsors'),
                       ),
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.info),
-                        title: const Text('Thông tin ứng dụng'),
-                        subtitle: const Text('Phiên bản, điều khoản, chính sách'),
+                        title: Text(appLocalizations.get('app_info')),
+                        subtitle: Text(appLocalizations.get('app_info_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('appInfo'),
                       ),
@@ -229,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
                     ),
-                    child: const Text('Đăng xuất'),
+                    child: Text(appLocalizations.get('logout')),
                   ),
                 ),
                 const SizedBox(height: 24),

@@ -109,9 +109,9 @@ class _SinglePurposeCameraScreenState extends State<SinglePurposeCameraScreen> {
                   height: 70,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withAlpha((255*0.9).toInt()),
                     border: Border.all(color: Colors.white, width: 4, style: BorderStyle.none),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), spreadRadius: 2, blurRadius: 10)],
+                    boxShadow: [BoxShadow(color: Colors.black.withAlpha((255*0.3).toInt()), spreadRadius: 2, blurRadius: 10)],
                   ),
                   child: const Icon(Icons.camera_alt, color: Colors.black, size: 40),
                 ),

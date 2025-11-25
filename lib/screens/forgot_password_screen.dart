@@ -97,7 +97,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withAlpha((255*0.2).toInt()),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -145,7 +145,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 decoration: InputDecoration(
                   hintText: 'email@example.com',
                   filled: true,
-                  fillColor: Colors.white.withOpacity(0.9),
+                  fillColor: Colors.white.withAlpha((255*0.9).toInt()),
                   prefixIcon: const Icon(Icons.mail_outline),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -193,7 +193,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Text(
             'Quay lại đăng nhập',
             style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withAlpha((255*0.9).toInt()),
               fontSize: 14,
               decoration: TextDecoration.underline,
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class SponsorsScreen extends StatelessWidget {
   final Function(String) onNavigate;
@@ -7,6 +8,8 @@ class SponsorsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Column(
         children: [
@@ -22,9 +25,9 @@ class SponsorsScreen extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => onNavigate('settings'),
                     ),
-                    const Text(
-                      'Nhà tài trợ',
-                      style: TextStyle(
+                    Text(
+                      appLocalizations.get('sponsors_title'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -38,13 +41,13 @@ class SponsorsScreen extends StatelessWidget {
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
-              children: const [
+              children: [
                 Text(
-                  'Cảm ơn các nhà tài trợ',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  appLocalizations.get('sponsors_thank_you'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 16),
-                Text('Dự án được hỗ trợ bởi các đối tác và nhà tài trợ tin tưởng vào tầm nhìn phát triển du lịch Việt Nam.'),
+                const SizedBox(height: 16),
+                Text(appLocalizations.get('sponsors_description')),
               ],
             ),
           ),
