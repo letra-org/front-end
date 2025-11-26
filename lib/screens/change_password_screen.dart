@@ -42,7 +42,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => widget.onNavigate('security'),
+                      onPressed: () => widget.onNavigate('settings'),
                     ),
                     Text(
                       appLocalizations.get('change_password_title'),

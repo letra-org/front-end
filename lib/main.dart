@@ -13,7 +13,6 @@ import 'screens/photos_screen.dart';
 import 'screens/ai_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/user_profile_screen.dart';
-import 'screens/security_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/create_post_screen.dart';
 import 'screens/team_screen.dart';
@@ -171,11 +170,6 @@ class _AppNavigatorState extends State<AppNavigator> {
       case 'userProfile':
         return UserProfileScreen(
           key: const ValueKey('userProfile'),
-          onNavigate: _navigateToScreen,
-        );
-      case 'security':
-        return SecurityScreen(
-          key: const ValueKey('security'),
           onNavigate: _navigateToScreen,
         );
       case 'changePassword':

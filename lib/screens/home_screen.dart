@@ -8,7 +8,7 @@ import '../widgets/bottom_navigation_bar.dart';
 import '../l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
-  final Function(String) onNavigate;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
   const HomeScreen({super.key, required this.onNavigate});
 
   @override
@@ -191,131 +191,132 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final appLocalizations = AppLocalizations.of(context)!;
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (bool didPop) {
-        if (didPop) return;
-        widget.onNavigate('login');
-      },
-      child: Scaffold(
-        body: Column(
-          children: [
-            Container(
-              color: const Color(0xFF2563EB),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      InkWell(
-                        onTap: () => widget.onNavigate('userProfile'),
-                        borderRadius: BorderRadius.circular(20),
-                        child: ClipOval(
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: _avatarUrl != null
-                                ? CachedNetworkImage(
-                                    imageUrl: _avatarUrl!,
-                                    placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2.0),
-                                    errorWidget: (context, url, error) => Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
-                                    fit: BoxFit.cover,
-                                  )
-                                : Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
+    return Scaffold(
+      body: Column(
+        children: [
+          Container(
+            color: const Color(0xFF2563EB),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: () => widget.onNavigate('userProfile'),
+                      borderRadius: BorderRadius.circular(20),
+                      child: ClipOval(
                         child: Container(
+                          width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.grey[300],
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
-                          child: TextFormField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: appLocalizations.get('search_hint'),
-                              border: InputBorder.none,
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
+                          child: _avatarUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: _avatarUrl!,
+                                  placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2.0),
+                                  errorWidget: (context, url, error) => Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: TextFormField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: appLocalizations.get('search_hint'),
+                            border: InputBorder.none,
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      PopupMenuButton<Function>(
-                        icon: const Icon(Icons.sort, color: Colors.white),
-                        tooltip: appLocalizations.get('sort_by'),
-                        onSelected: (Function callback) => callback(),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: () => _setSortOrder(SortCriteria.date, SortDirection.descending),
-                            child: Text(appLocalizations.get('sort_by_date_newest')),
-                          ),
-                          PopupMenuItem(
-                            value: () => _setSortOrder(SortCriteria.date, SortDirection.ascending),
-                            child: Text(appLocalizations.get('sort_by_date_oldest')),
-                          ),
-                          PopupMenuItem(
-                            value: () => _setSortOrder(SortCriteria.likes, SortDirection.descending),
-                            child: Text(appLocalizations.get('sort_by_likes_most')),
-                          ),
-                          PopupMenuItem(
-                            value: () => _setSortOrder(SortCriteria.likes, SortDirection.ascending),
-                            child: Text(appLocalizations.get('sort_by_likes_least')),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<Function>(
+                      icon: const Icon(Icons.sort, color: Colors.white),
+                      tooltip: appLocalizations.get('sort_by'),
+                      onSelected: (Function callback) => callback(),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: () => _setSortOrder(SortCriteria.date, SortDirection.descending),
+                          child: Text(appLocalizations.get('sort_by_date_newest')),
+                        ),
+                        PopupMenuItem(
+                          value: () => _setSortOrder(SortCriteria.date, SortDirection.ascending),
+                          child: Text(appLocalizations.get('sort_by_date_oldest')),
+                        ),
+                        PopupMenuItem(
+                          value: () => _setSortOrder(SortCriteria.likes, SortDirection.descending),
+                          child: Text(appLocalizations.get('sort_by_likes_most')),
+                        ),
+                        PopupMenuItem(
+                          value: () => _setSortOrder(SortCriteria.likes, SortDirection.ascending),
+                          child: Text(appLocalizations.get('sort_by_likes_least')),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredPosts.isEmpty
-                      ? Center(child: Text(appLocalizations.get('no_posts_found')))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: _currentPosts.length,
-                          itemBuilder: (context, index) {
-                            final post = _currentPosts[index];
-                            return _buildPostCard(post, isDarkMode);
-                          },
-                        ),
-            ),
-            if (!_isLoading && _totalPages > 1)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.grey[900] : Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withAlpha((255 * 0.05).toInt()), blurRadius: 10, offset: const Offset(0, -2))],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(onPressed: _currentPage > 1 ? () => _changePage(_currentPage - 1) : null, icon: const Icon(Icons.chevron_left)),
-                    ...List.generate(_totalPages > 5 ? 5 : _totalPages, (index) {
-                      int pageNum;
-                      if (_totalPages <= 5) { pageNum = index + 1; } 
-                      else if (_currentPage <= 3) { pageNum = index + 1; }
-                      else if (_currentPage >= _totalPages - 2) { pageNum = _totalPages - 4 + index; } 
-                      else { pageNum = _currentPage - 2 + index; }
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: InkWell(
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredPosts.isEmpty
+                    ? Center(child: Text(appLocalizations.get('no_posts_found')))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _currentPosts.length,
+                        itemBuilder: (context, index) {
+                          final post = _currentPosts[index];
+                          return _buildPostCard(post, isDarkMode);
+                        },
+                      ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!_isLoading && _totalPages > 1)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDarkMode ? Colors.grey[900] : Colors.white,
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(onPressed: _currentPage > 1 ? () => _changePage(_currentPage - 1) : null, icon: const Icon(Icons.chevron_left)),
+                      ...List.generate(_totalPages > 3 ? 3 : _totalPages, (index) {
+                        int pageNum;
+                        if (_totalPages <= 3) { pageNum = index + 1; } 
+                        else if (_currentPage <= 2) { pageNum = index + 1; }
+                        else if (_currentPage >= _totalPages - 1) { pageNum = _totalPages - 2 + index; }
+                        else { pageNum = _currentPage - 1 + index; }
+                        return InkWell(
                           onTap: () => _changePage(pageNum),
                           child: Container(
                             width: 32, height: 32,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
                             decoration: BoxDecoration(
                               color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.transparent,
                               borderRadius: BorderRadius.circular(4),
@@ -323,25 +324,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Center(child: Text(pageNum.toString(), style: TextStyle(color: _currentPage == pageNum ? Colors.white : (isDarkMode ? Colors.white : Colors.black)))),
                           ),
-                        ),
-                      );
-                    }),
-                    IconButton(onPressed: _currentPage < _totalPages ? () => _changePage(_currentPage + 1) : null, icon: const Icon(Icons.chevron_right)),
-                  ],
-                ),
+                        );
+                      }),
+                      IconButton(onPressed: _currentPage < _totalPages ? () => _changePage(_currentPage + 1) : null, icon: const Icon(Icons.chevron_right)),
+                    ],
+                  ),
+                  FloatingActionButton.extended(
+                    onPressed: () => widget.onNavigate('createPost'),
+                    label: Text(appLocalizations.get('create_post_title')),
+                    icon: const Icon(Icons.add),
+                    backgroundColor: const Color(0xFF2563EB),
+                    elevation: 2.0,
+                  ),
+                ],
               ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => widget.onNavigate('createPost'),
-          label: Text(appLocalizations.get('create_post_title')),
-          icon: const Icon(Icons.add),
-          backgroundColor: const Color(0xFF2563EB),
-        ),
-        bottomNavigationBar: BottomNavigationBarWidget(
-          currentScreen: 'home',
-          onNavigate: widget.onNavigate,
-        ),
+            ),
+          BottomNavigationBarWidget(
+            currentScreen: 'home',
+            onNavigate: widget.onNavigate,
+          ),
+        ],
       ),
     );
   }

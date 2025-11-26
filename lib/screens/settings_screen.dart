@@ -275,10 +275,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.lock),
-                        title: Text(appLocalizations.get('security')),
-                        subtitle: Text(appLocalizations.get('security_subtitle')),
+                        title: Text(appLocalizations.get('change_password')),
+                        subtitle: Text(appLocalizations.get('change_password_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => widget.onNavigate('security'),
+                        onTap: () => widget.onNavigate('changePassword'),
                       ),
                       const Divider(height: 1),
                       ListTile(

@@ -3,8 +3,7 @@ location: Quảng Ninh
 image: https://images.unsplash.com/photo-1528127269322-539801943592?w=800
 date: 2025-11-15
 likes: 234
-caption: Một trong những vịnh đẹp nhất thế giới, được UNESCO công nhận là Di sản Thiên nhiên Thế giới. Chắc chắn phải thử đi thuyền kayak để khám phá các hang động và bãi biển ẩn mình. Một trải nghiệm không thể nào quên!
-
+caption: Một trong những vịnh đẹp nhất thế giới, được UNESCO công nhận là Di sản Thiên nhiên Thế giới. Chắc chắn phải thử đi thuyền kayak để khám phá các hang động và bãi biển ẩn mình.
 
 title: Phố cổ Hội An về đêm
 location: Quảng Nam
@@ -13,11 +12,128 @@ date: 2025-11-14
 likes: 189
 caption: Hội An trở nên huyền ảo và lung linh hơn bao giờ hết khi màn đêm buông xuống. Những chiếc đèn lồng đủ màu sắc thắp sáng cả khu phố, tạo nên một không gian vô cùng lãng mạn và yên bình.
 
-
 title: Cánh đồng lúa Tam Cốc - Bích Động
 location: Ninh Bình
 image: https://images.unsplash.com/photo-1627995133333-e5d8b8f2d504?w=800
 date: 2025-11-13
 likes: 412
-caption: Được mệnh danh là "Hạ Long trên cạn", Tam Cốc quyến rũ du khách bởi những cánh đồng lúa xanh mướt hoặc vàng óng xen kẽ giữa các dãy núi đá vôi trùng điệp. Ngồi thuyền xuôi dòng sông Ngô Đồng là cách tốt nhất để cảm nhận trọn vẹn vẻ đẹp nơi đây.
+caption: Được mệnh danh là "Hạ Long trên cạn", Tam Cốc quyến rũ du khách bởi những cánh đồng lúa xanh mướt hoặc vàng óng xen kẽ giữa các dãy núi đá vôi trùng điệp.
 
+title: Ruộng bậc thang Sapa
+location: Lào Cai
+image: https://images.unsplash.com/photo-1583851183331-3BC313437141?w=800
+date: 2025-11-12
+likes: 560
+caption: Sapa là điểm đến không thể bỏ lỡ với những thửa ruộng bậc thang hùng vĩ. Thời điểm đẹp nhất để ghé thăm là vào mùa lúa chín, khoảng tháng 9, tháng 10.
+
+title: Đà Lạt - Thành phố ngàn hoa
+location: Lâm Đồng
+image: https://images.unsplash.com/photo-1558433713-393c62a2aa9e?w=800
+date: 2025-11-11
+likes: 320
+caption: Với khí hậu mát mẻ quanh năm, Đà Lạt là nơi lý tưởng để thoát khỏi cái nóng của thành phố. Đừng quên ghé thăm hồ Xuân Hương và thưởng thức những món ăn đường phố.
+
+title: Biển Mỹ Khê - Đà Nẵng
+location: Đà Nẵng
+image: https://images.unsplash.com/photo-1616484173745-07f9a8cfe680?w=800
+date: 2025-11-10
+likes: 480
+caption: Bãi biển Mỹ Khê được mệnh danh là một trong những bãi biển quyến rũ nhất hành tinh. Nước biển trong xanh và bãi cát trắng mịn là điểm nhấn của nơi đây.
+
+title: Kinh thành Huế
+location: Thừa Thiên Huế
+image: https://images.unsplash.com/photo-1552509425-4927a7c1b4a6?w=800
+date: 2025-11-09
+likes: 290
+caption: Kinh thành Huế là một di tích lịch sử quan trọng, nơi lưu giữ nhiều giá trị văn hóa của triều Nguyễn. Hãy dành thời gian khám phá Đại Nội và các lăng tẩm.
+
+title: Mũi Né - Phan Thiết
+location: Bình Thuận
+image: https://images.unsplash.com/photo-1599955286523-265e31707578?w=800
+date: 2025-11-08
+likes: 375
+caption: Đồi cát bay ở Mũi Né là một trong những điểm đến độc đáo nhất Việt Nam. Bạn có thể thử trượt cát hoặc đi xe jeep trên những đồi cát mênh mông.
+
+title: Phú Quốc - Đảo ngọc
+location: Kiên Giang
+image: https://images.unsplash.com/photo-1588629167232-1fb3a1f33b5d?w=800
+date: 2025-11-07
+likes: 620
+caption: Phú Quốc nổi tiếng với những bãi biển đẹp như Bãi Sao, Bãi Trường và những khu nghỉ dưỡng sang trọng. Đây là nơi lý tưởng cho một kỳ nghỉ dưỡng.
+
+title: Chợ nổi Cái Răng
+location: Cần Thơ
+image: https://images.unsplash.com/photo-1603584828312-33ac142a7863?w=800
+date: 2025-11-06
+likes: 210
+caption: Chợ nổi Cái Răng là một nét văn hóa đặc trưng của miền Tây sông nước. Bạn có thể thưởng thức các loại trái cây tươi ngon và các món ăn đặc sản ngay trên thuyền.
+
+title: Ghềnh Đá Đĩa
+location: Phú Yên
+image: https://images.unsplash.com/photo-1594498762148-3a2416b32e8f?w=800
+date: 2025-11-05
+likes: 450
+caption: Ghềnh Đá Đĩa là một kiệt tác của thiên nhiên với những khối đá bazan hình lục giác xếp chồng lên nhau. Đây là một điểm đến không thể bỏ qua khi đến Phú Yên.
+
+title: Động Phong Nha
+location: Quảng Bình
+image: https://images.unsplash.com/photo-1594965158637-88c231bbf4a4?w=800
+date: 2025-11-04
+likes: 510
+caption: Động Phong Nha là một trong những hang động đẹp nhất thế giới. Du khách sẽ được đi thuyền trên sông Son để vào khám phá vẻ đẹp kỳ vĩ của hang động.
+
+title: Côn Đảo
+location: Bà Rịa - Vũng Tàu
+image: https://images.unsplash.com/photo-1629818868359-5369c36294a5?w=800
+date: 2025-11-03
+likes: 340
+caption: Côn Đảo không chỉ là một di tích lịch sử mà còn là một thiên đường du lịch với những bãi biển hoang sơ và hệ sinh thái đa dạng.
+
+title: Thác Bản Giốc
+location: Cao Bằng
+image: https://images.unsplash.com/photo-1596701168434-24a6a57041b3?w=800
+date: 2025-11-02
+likes: 590
+caption: Thác Bản Giốc là một trong những thác nước đẹp và hùng vĩ nhất Đông Nam Á. Dòng nước trắng xóa đổ xuống từ độ cao hàng chục mét tạo nên một khung cảnh ngoạn mục.
+
+title: Hồ Ba Bể
+location: Bắc Kạn
+image: https://images.unsplash.com/photo-1620766165518-212b72b6a524?w=800
+date: 2025-11-01
+likes: 280
+caption: Hồ Ba Bể là một trong 20 hồ nước ngọt tự nhiên lớn nhất thế giới. Đến đây, bạn sẽ được hòa mình vào thiên nhiên trong lành và khám phá văn hóa của các dân tộc Tày, Nùng.
+
+title: Làng cổ Đường Lâm
+location: Hà Nội
+image: https://images.unsplash.com/photo-1587614295988-527a2a17f3a3?w=800
+date: 2025-10-31
+likes: 190
+caption: Làng cổ Đường Lâm vẫn còn giữ được những nét kiến trúc cổ kính của một làng quê Bắc Bộ xưa. Đây là một điểm đến lý tưởng cho những ai muốn tìm về không gian yên bình.
+
+title: Địa đạo Củ Chi
+location: TP.HCM
+image: https://images.unsplash.com/photo-1592659356399-55cb7b520427?w=800
+date: 2025-10-30
+likes: 150
+caption: Địa đạo Củ Chi là một hệ thống phòng thủ dưới lòng đất, được sử dụng trong thời kỳ kháng chiến. Đây là một di tích lịch sử quan trọng, thu hút nhiều du khách trong và ngoài nước.
+
+title: Thánh địa Mỹ Sơn
+location: Quảng Nam
+image: https://images.unsplash.com/photo-1591855428469-82f3c2b0fe16?w=800
+date: 2025-10-29
+likes: 380
+caption: Thánh địa Mỹ Sơn là một quần thể đền tháp Chăm Pa cổ kính. Nơi đây đã được UNESCO công nhận là Di sản Văn hóa Thế giới.
+
+title: Dinh Độc Lập
+location: TP.HCM
+image: https://images.unsplash.com/photo-1575037614833-825c77a1a2b3?w=800
+date: 2025-10-28
+likes: 250
+caption: Dinh Độc Lập là một biểu tượng lịch sử của Sài Gòn. Nơi đây đã chứng kiến nhiều sự kiện quan trọng của đất nước.
+
+title: Nhà thờ Đức Bà Sài Gòn
+location: TP.HCM
+image: https://images.unsplash.com/photo-1584302094205-8712a7a40735?w=800
+date: 2025-10-27
+likes: 420
+caption: Nhà thờ Đức Bà Sài Gòn là một công trình kiến trúc cổ kính theo phong cách Gothic. Đây là một trong những biểu tượng của thành phố Hồ Chí Minh.
