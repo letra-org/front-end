@@ -63,7 +63,10 @@ class _PhotosScreenState extends State<PhotosScreen> {
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
               )
-            : null,
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => widget.onNavigate('settings'),
+              ),
         actions: [
           if (!widget.isPickerMode)
             IconButton(
