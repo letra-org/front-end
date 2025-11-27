@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'single_purpose_camera_screen.dart'; // Import the new camera screen
 import '../l10n/app_localizations.dart';
+import '../constants/api_config.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -22,7 +23,6 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic> _userInfo = {};
-  File? _profileImageFile;
   bool _isLoading = true;
 
   final TextEditingController _nameController = TextEditingController();
@@ -43,10 +43,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final appLocalizations = AppLocalizations.of(context)!;
     setState(() {
       _userInfo = {
-        'full_name': appLocalizations.get('loading'),
-        'email': appLocalizations.get('loading'),
-        'phone': appLocalizations.get('loading'),
-        'username': appLocalizations.get('loading'),
+        'full_name': appLocalizations.get('loading') ?? 'Loading...',
+        'email': appLocalizations.get('loading') ?? 'Loading...',
+        'phone': appLocalizations.get('loading') ?? 'Loading...',
+        'username': appLocalizations.get('loading') ?? 'Loading...',
         'avatar_url': null,
       };
     });
@@ -87,9 +87,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final dataPath = '${directory.path}/data/userdata.js';
-      final imagePath = '${directory.path}/user/avatar.jpg';
       final dataFile = File(dataPath);
-      final imageFile = File(imagePath);
 
       if (await dataFile.exists()) {
         final content = await dataFile.readAsString();
@@ -97,24 +95,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         final user = jsonData['user'] as Map<String, dynamic>?;
 
         if (user != null) {
-          _userInfo = {
-            'full_name': user['full_name'] as String? ?? appLocalizations.get('no_name'),
-            'email': user['email'] as String? ?? appLocalizations.get('no_email'),
-            'phone': user['phone'] as String? ?? appLocalizations.get('no_phone'),
-            'username': user['username'] as String? ?? appLocalizations.get('no_username'),
-            'avatar_url': user['avatar_url'],
-          };
+          setState(() {
+            _userInfo = {
+              'full_name': user['full_name'] as String? ?? appLocalizations.get('no_name'),
+              'email': user['email'] as String? ?? appLocalizations.get('no_email'),
+              'phone': user['phone'] as String? ?? appLocalizations.get('no_phone'),
+              'username': user['username'] as String? ?? appLocalizations.get('no_username'),
+              'avatar_url': user['avatar_url'],
+            };
+          });
         }
       }
 
-      if (await imageFile.exists()) {
-        _profileImageFile = imageFile;
-      }
-
-      _nameController.text = _userInfo['full_name']!;
-      _emailController.text = _userInfo['email']!;
-      _phoneController.text = _userInfo['phone']!;
-      _usernameController.text = _userInfo['username']!;
+      _nameController.text = _userInfo['full_name'] ?? '';
+      _emailController.text = _userInfo['email'] ?? '';
+      _phoneController.text = _userInfo['phone'] ?? '';
+      _usernameController.text = _userInfo['username'] ?? '';
 
     } catch (e) {
       print('LỖI KHI TẢI DỮ LIỆU: $e');
@@ -138,7 +134,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final url = Uri.parse('https://127.0.0.1:8000/users/me');
+      final url = Uri.parse(ApiConfig.currentUser);
       final response = await http.put(
         url,
         headers: {
@@ -149,7 +145,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           'full_name': _nameController.text,
           'email': _emailController.text,
           'phone': _phoneController.text,
-          'username': _userInfo['username'], // Keep non-editable fields
         }),
       );
 
@@ -174,6 +169,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(appLocalizations.get('update_success'))),
         );
+      } else if (response.statusCode == 422) {
+        throw Exception('Dữ liệu không hợp lệ');
       } else {
         throw Exception('${appLocalizations.get('update_failed')}${response.statusCode}');
       }
@@ -190,21 +187,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
 
-  // MODIFIED: This function now navigates to the custom camera screen.
   Future<void> _handleAvatarChange(BuildContext context) async {
-    // Navigate to the custom camera and wait for a result.
     final XFile? confirmedImage = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SinglePurposeCameraScreen()),
     );
 
-    // If the user confirmed an image, proceed with the upload.
     if (confirmedImage != null) {
       _uploadAvatar(confirmedImage);
     }
   }
 
-  // This is the original _takePicture logic, now refactored for uploading.
   Future<void> _uploadAvatar(XFile imageFile) async {
     final appLocalizations = AppLocalizations.of(context)!;
     final String? token = await _getAuthToken();
@@ -218,7 +211,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() { _isLoading = true; });
 
     try {
-      final url = Uri.parse('http://letra-org.fly.dev/users/me/avatar');
+      final url = Uri.parse(ApiConfig.updateUserAvatar);
       final request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $token';
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
@@ -241,20 +234,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         localData['user'] = updatedUser;
         await dataFile.writeAsString(json.encode(localData));
         
-        final newAvatarFile = File('${directory.path}/user/avatar.jpg');
-         if (!await newAvatarFile.parent.exists()) {
-          await newAvatarFile.parent.create(recursive: true);
-        }
-        final savedImage = await File(imageFile.path).copy(newAvatarFile.path);
-
         setState(() {
           _userInfo['avatar_url'] = updatedUser['avatar_url'];
-          _profileImageFile = savedImage;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(appLocalizations.get('avatar_update_success'))),
         );
 
+      } else if (response.statusCode == 422) {
+        throw Exception('Dữ liệu không hợp lệ');
       } else {
         throw Exception('${appLocalizations.get('upload_failed')}${response.statusCode}');
       }
@@ -382,16 +370,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildAvatar() {
     final appLocalizations = AppLocalizations.of(context)!;
-    if (_profileImageFile != null && _profileImageFile!.existsSync()) {
-      return CircleAvatar(
-        radius: 60,
-        backgroundImage: FileImage(_profileImageFile!),
-      );
-    }
-    if (_userInfo['avatar_url'] != null) {
+    final avatarUrl = _userInfo['avatar_url'] as String?;
+
+    if (avatarUrl != null) {
       return ClipOval(
         child: CachedNetworkImage(
-          imageUrl: _userInfo['avatar_url']!,
+          imageUrl: avatarUrl,
           placeholder: (context, url) => const CircleAvatar(radius: 60, child: CircularProgressIndicator()),
           errorWidget: (context, url, error) => CircleAvatar(radius: 60, backgroundImage: const AssetImage('assets/images/user/avatar.jpg')),
           fit: BoxFit.cover,
@@ -400,17 +384,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
       );
     }
-    if (_userInfo['full_name'] != null && _userInfo['full_name']!.isNotEmpty && _userInfo['full_name'] != appLocalizations.get('loading')) {
-      final initial = _userInfo['full_name']![0].toUpperCase();
+    
+    final fullName = _userInfo['full_name'] as String?;
+    if (fullName != null && fullName.isNotEmpty && fullName != appLocalizations.get('loading')) {
+      final initial = fullName[0].toUpperCase();
       return CircleAvatar(
         radius: 60,
         backgroundColor: const Color(0xFF2563EB),
         child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
       );
     }
-    return CircleAvatar(
+    
+    return const CircleAvatar(
       radius: 60,
-      backgroundImage: const AssetImage('assets/images/user/avatar.jpg'),
+      backgroundImage: AssetImage('assets/images/user/avatar.jpg'),
     );
   }
 

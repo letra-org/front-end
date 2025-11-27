@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../constants/api_config.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onRegister;
@@ -50,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final phone = _phoneController.text;
       final password = _passwordController.text;
 
-      final url = Uri.parse('https://letra-org.fly.dev/users/');
+      final url = Uri.parse(ApiConfig.registerUser);
 
       try {
         final response = await http
@@ -190,7 +191,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           validator: (value) {
                             if (value == null ||
                                 value.isEmpty ||
-                                !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                                !RegExp(r'^[^\@]+@[^\@]+\.[^\@]+').hasMatch(value)) {
                               return 'Email không hợp lệ';
                             }
                             return null;
@@ -309,19 +310,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       style: const TextStyle(
         color: Colors.white,
         fontSize: 16,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
 
-  InputDecoration _buildInputDecoration({required String hintText, required IconData icon}) {
+  InputDecoration _buildInputDecoration(
+      {required String hintText, required IconData icon}) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: TextStyle(color: Colors.grey[600]),
-      prefixIcon: Icon(icon, color: Colors.grey[700], size: 22),
+      hintStyle: const TextStyle(color: Colors.white70, fontSize: 15),
+      prefixIcon: Icon(icon, color: Colors.white, size: 22),
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      fillColor: Colors.white.withAlpha((255 * 0.25).toInt()),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -332,15 +334,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+        borderSide: const BorderSide(color: Colors.white, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+        borderSide: const BorderSide(color: Colors.yellow, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
+        borderSide: const BorderSide(color: Colors.yellow, width: 2),
       ),
     );
   }

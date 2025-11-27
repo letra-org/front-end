@@ -204,24 +204,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     InkWell(
                       onTap: () => widget.onNavigate('userProfile'),
-                      borderRadius: BorderRadius.circular(20),
-                      child: ClipOval(
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: _avatarUrl != null
-                              ? CachedNetworkImage(
-                                  imageUrl: _avatarUrl!,
-                                  placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2.0),
-                                  errorWidget: (context, url, error) => Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
-                                  fit: BoxFit.cover,
-                                )
-                              : Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
+                      borderRadius: BorderRadius.circular(22),
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: Colors.white,
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.grey[300],
+                          backgroundImage: _avatarUrl != null
+                              ? CachedNetworkImageProvider(_avatarUrl!)
+                              : const AssetImage('assets/images/user/avatar.jpg') as ImageProvider,
                         ),
                       ),
                     ),
@@ -279,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 : _filteredPosts.isEmpty
                     ? Center(child: Text(appLocalizations.get('no_posts_found')))
                     : ListView.builder(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100), // Add padding for bottom bar
                         itemCount: _currentPosts.length,
                         itemBuilder: (context, index) {
                           final post = _currentPosts[index];
@@ -300,41 +292,60 @@ class _HomeScreenState extends State<HomeScreen> {
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(onPressed: _currentPage > 1 ? () => _changePage(_currentPage - 1) : null, icon: const Icon(Icons.chevron_left)),
-                      ...List.generate(_totalPages > 3 ? 3 : _totalPages, (index) {
-                        int pageNum;
-                        if (_totalPages <= 3) { pageNum = index + 1; } 
-                        else if (_currentPage <= 2) { pageNum = index + 1; }
-                        else if (_currentPage >= _totalPages - 1) { pageNum = _totalPages - 2 + index; }
-                        else { pageNum = _currentPage - 1 + index; }
-                        return InkWell(
-                          onTap: () => _changePage(pageNum),
-                          child: Container(
-                            width: 32, height: 32,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.grey),
-                            ),
-                            child: Center(child: Text(pageNum.toString(), style: TextStyle(color: _currentPage == pageNum ? Colors.white : (isDarkMode ? Colors.white : Colors.black)))),
-                          ),
-                        );
-                      }),
-                      IconButton(onPressed: _currentPage < _totalPages ? () => _changePage(_currentPage + 1) : null, icon: const Icon(Icons.chevron_right)),
-                    ],
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(onPressed: _currentPage > 1 ? () => _changePage(_currentPage - 1) : null, icon: const Icon(Icons.chevron_left)),
+                          ...List.generate(_totalPages > 3 ? 3 : _totalPages, (index) {
+                            int pageNum;
+                            if (_totalPages <= 3) { pageNum = index + 1; } 
+                            else if (_currentPage <= 2) { pageNum = index + 1; }
+                            else if (_currentPage >= _totalPages - 1) { pageNum = _totalPages - 2 + index; }
+                            else { pageNum = _currentPage - 1 + index; }
+                            return InkWell(
+                              onTap: () => _changePage(pageNum),
+                              child: Container(
+                                width: 32, height: 32,
+                                margin: const EdgeInsets.symmetric(horizontal: 2),
+                                decoration: BoxDecoration(
+                                  color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.grey),
+                                ),
+                                child: Center(child: Text(pageNum.toString(), style: TextStyle(color: _currentPage == pageNum ? Colors.white : (isDarkMode ? Colors.white : Colors.black)))),
+                              ),
+                            );
+                          }),
+                          IconButton(onPressed: _currentPage < _totalPages ? () => _changePage(_currentPage + 1) : null, icon: const Icon(Icons.chevron_right)),
+                        ],
+                      ),
+                    ),
                   ),
-                  FloatingActionButton.extended(
-                    onPressed: () => widget.onNavigate('createPost'),
-                    label: Text(appLocalizations.get('create_post_title')),
-                    icon: const Icon(Icons.add),
-                    backgroundColor: const Color(0xFF2563EB),
-                    elevation: 2.0,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final screenWidth = MediaQuery.of(context).size.width;
+                      if (screenWidth > 400) {
+                        return FloatingActionButton.extended(
+                          onPressed: () => widget.onNavigate('createPost'),
+                          label: Text(appLocalizations.get('create_post_title')),
+                          icon: const Icon(Icons.add),
+                          backgroundColor: const Color(0xFF2563EB),
+                          elevation: 2.0, 
+                        );
+                      } else {
+                        return FloatingActionButton(
+                          onPressed: () => widget.onNavigate('createPost'),
+                          child: const Icon(Icons.add),
+                          backgroundColor: const Color(0xFF2563EB),
+                          elevation: 2.0,
+                        );
+                      }
+                    },
                   ),
                 ],
               ),

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http; // Required for HTTP requests
 import 'package:path_provider/path_provider.dart'; // For file storage
 import 'dart:io'; // For file operations
 import '../l10n/app_localizations.dart';
+import '../constants/api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLogin;
@@ -98,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final loginUrl = Uri.parse('https://letra-org.fly.dev/auth/login');
+    final loginUrl = Uri.parse(ApiConfig.login);
 
     try {
       final loginResponse = await http.post(
@@ -109,11 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      if (loginResponse.statusCode == 200) {
+      if (loginResponse.statusCode == 200 || loginResponse.statusCode == 201) {
         final loginData = json.decode(loginResponse.body);
         final accessToken = loginData['access_token'];
 
-        final userDetailsUrl = Uri.parse('https://letra-org.fly.dev/users/me');
+        final userDetailsUrl = Uri.parse(ApiConfig.currentUser);
         final userDetailsResponse = await http.get(
           userDetailsUrl,
           headers: {
@@ -132,8 +133,10 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           throw Exception('Không thể lấy chi tiết người dùng. Mã lỗi: ${userDetailsResponse.statusCode}');
         }
-      } else {
+      } else if (loginResponse.statusCode == 422) {
         _showErrorToast(appLocalizations.get('invalid_credentials'));
+      } else {
+        _showErrorToast('Đã xảy ra lỗi không xác định. Mã lỗi: ${loginResponse.statusCode}');
       }
     } catch (e) {
       if (mounted) {

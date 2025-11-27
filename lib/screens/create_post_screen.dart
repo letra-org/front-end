@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../l10n/app_localizations.dart';
 import 'photos_screen.dart'; // Import PhotosScreen
 
@@ -24,6 +25,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   File? _imageFile;
   String? _avatarUrl;
   String _fullName = 'User';
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -105,6 +107,50 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
+  Future<void> _submitPost() async {
+    final appLocalizations = AppLocalizations.of(context)!;
+    if (_titleController.text.isEmpty || _locationController.text.isEmpty || _captionController.text.isEmpty || _imageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin và chọn ảnh')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final url = Uri.parse('https://letra-org.fly.dev/posts/');
+      final request = http.MultipartRequest('POST', url);
+      request.fields['title'] = _titleController.text;
+      request.fields['location'] = _locationController.text;
+      request.fields['caption'] = _captionController.text;
+      request.files.add(await http.MultipartFile.fromPath('image', _imageFile!.path));
+
+      final response = await request.send();
+
+      if (response.statusCode == 201) {
+        widget.onNavigate('home');
+      } else if (response.statusCode == 422) {
+        throw Exception('Dữ liệu không hợp lệ');
+      } else {
+        throw Exception('Lỗi không xác định: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi đăng bài: ${e.toString().replaceAll("Exception: ", "")}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
@@ -121,12 +167,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: ElevatedButton(
-              onPressed: () { /* Handle post submission */ },
+              onPressed: _isLoading ? null : _submitPost,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
               ),
-              child: Text(appLocalizations.get('post_button')),
+              child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white)) : Text(appLocalizations.get('post_button')),
             ),
           ),
         ],
