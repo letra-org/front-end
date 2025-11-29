@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../providers/theme_provider.dart';
 import '../providers/language_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../constants/api_config.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -27,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _avatarUrl;
   String _fullName = 'Người dùng';
   String _email = 'Tải thông tin...';
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
@@ -58,6 +61,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _email = "Không thể tải dữ liệu";
         });
       }
+    }
+  }
+
+  Future<String?> _getAuthToken() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        return data['access_token'] as String?;
+      }
+    } catch (e) {
+      print("Lỗi khi lấy token: $e");
+    }
+    return null;
+  }
+
+  Future<void> _handleLogout() async {
+    setState(() {
+      _isLoggingOut = true;
+    });
+
+    final token = await _getAuthToken();
+
+    if (token != null) {
+      try {
+        await http.post(
+          Uri.parse(ApiConfig.logout),
+          headers: {'Authorization': 'Bearer $token'},
+        ).timeout(const Duration(seconds: 5));
+      } catch (e) {
+        print("Logout API call failed: $e");
+        // Ignore error and proceed with client-side logout
+      }
+    }
+    
+    // Clear local data
+    try {
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/data/userdata.js');
+        if (await file.exists()) {
+            await file.delete();
+        }
+    } catch (e) {
+        print("Failed to delete user data: $e");
+    }
+
+    if (mounted) {
+      widget.onLogout();
     }
   }
 
@@ -329,12 +382,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: double.infinity,
                   height: 50,
                   child: OutlinedButton(
-                    onPressed: widget.onLogout,
+                    onPressed: _isLoggingOut ? null : _handleLogout,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red),
                     ),
-                    child: Text(appLocalizations.get('logout')),
+                    child: _isLoggingOut
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                          )
+                        : Text(appLocalizations.get('logout')),
                   ),
                 ),
                 const SizedBox(height: 24),

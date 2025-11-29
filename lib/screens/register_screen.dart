@@ -51,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final phone = _phoneController.text;
       final password = _passwordController.text;
 
-      final url = Uri.parse(ApiConfig.registerUser);
+      final url = Uri.parse(ApiConfig.create);
 
       try {
         final response = await http
