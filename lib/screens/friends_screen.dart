@@ -2,23 +2,55 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/bottom_navigation_bar.dart';
 
-class FriendsScreen extends StatelessWidget {
+class FriendsScreen extends StatefulWidget {
   final Function(String, {Map<String, dynamic> data}) onNavigate;
 
   const FriendsScreen({super.key, required this.onNavigate});
 
   @override
-  Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final appLocalizations = AppLocalizations.of(context)!;
+  State<FriendsScreen> createState() => _FriendsScreenState();
+}
 
-    final friends = [
+class _FriendsScreenState extends State<FriendsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, String>> _allFriends = [];
+  List<Map<String, String>> _filteredFriends = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _allFriends = [
       {'name': 'Nguyễn Văn A', 'location': 'Hà Nội', 'avatar': 'A'},
       {'name': 'Trần Thị B', 'location': 'Đà Nẵng', 'avatar': 'B'},
       {'name': 'Lê Văn C', 'location': 'TP.HCM', 'avatar': 'C'},
       {'name': 'Phạm Thị D', 'location': 'Nha Trang', 'avatar': 'D'},
       {'name': 'Hoàng Văn E', 'location': 'Đà Lạt', 'avatar': 'E'},
     ];
+    _filteredFriends = List.from(_allFriends);
+    _searchController.addListener(_filterFriends);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterFriends);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterFriends() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredFriends = _allFriends.where((friend) {
+        final name = friend['name']!.toLowerCase();
+        return name.contains(query);
+      }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Column(
@@ -54,6 +86,7 @@ class FriendsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: appLocalizations.get('search_friends_hint'),
                 prefixIcon: const Icon(Icons.search),
@@ -69,9 +102,9 @@ class FriendsScreen extends StatelessWidget {
           // Friends List
           Expanded(
             child: ListView.builder(
-              itemCount: friends.length,
+              itemCount: _filteredFriends.length,
               itemBuilder: (context, index) {
-                final friend = friends[index];
+                final friend = _filteredFriends[index];
                 return Card(
                   margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: ListTile(
@@ -95,7 +128,7 @@ class FriendsScreen extends StatelessWidget {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.message),
-                      onPressed: () => onNavigate('chat', data: {
+                      onPressed: () => widget.onNavigate('chat', data: {
                         'friendName': friend['name']!,
                         'friendAvatar': friend['avatar']!,
                       }),
@@ -109,7 +142,7 @@ class FriendsScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomNavigationBarWidget(
         currentScreen: 'friends',
-        onNavigate: onNavigate,
+        onNavigate: widget.onNavigate,
       ),
     );
   }

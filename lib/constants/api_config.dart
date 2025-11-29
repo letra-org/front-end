@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'https://b55k0s8l-8000.asse.devtunnels.ms';
+  static const String baseUrl = 'https://hvn785k2-8000.asse.devtunnels.ms';
 
   // Auth
   static const String login = '$baseUrl/auth/login';
