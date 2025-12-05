@@ -1,3 +1,4 @@
+// ignore: unused_import
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -189,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: appLocalizations.get('type_a_message') ?? 'Type a message...',
+                  hintText: appLocalizations.get('type_a_message'),
                   filled: true,
                   fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                   border: OutlineInputBorder(

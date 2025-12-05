@@ -89,8 +89,10 @@ class AppNavigator extends StatefulWidget {
 }
 
 class _AppNavigatorState extends State<AppNavigator> {
-  String _currentScreen = 'welcome';
-  String _previousScreen = 'welcome';
+  final List<String> _history = ['welcome'];
+  String get _currentScreen => _history.last;
+  String get _previousScreen => _history.length > 1 ? _history[_history.length - 2] : _history.last;
+
   final Map<String, dynamic> _screenData = {};
 
   final Map<String, int> _screenOrder = const {
@@ -103,19 +105,30 @@ class _AppNavigatorState extends State<AppNavigator> {
 
   void _navigateToScreen(String screen, {Map<String, dynamic>? data}) {
     setState(() {
-      _previousScreen = _currentScreen;
-      _currentScreen = screen;
+      if (_currentScreen != screen) {
+        _history.add(screen);
+      }
       if (data != null) {
         _screenData.clear();
         _screenData.addAll(data);
       }
     });
   }
+  
+  void _handleBack() {
+     if (_history.length > 1) {
+      setState(() {
+        _history.removeLast();
+      });
+    } else {
+      SystemNavigator.pop();
+    }
+  }
 
   void _handleLogout() {
     setState(() {
-      _previousScreen = _currentScreen;
-      _currentScreen = 'login';
+      _history.clear();
+      _history.add('login');
       _screenData.clear();
     });
   }
@@ -224,37 +237,44 @@ class _AppNavigatorState extends State<AppNavigator> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          final newScreenKey = (child.key as ValueKey).value as String;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Scaffold(
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            final newScreenKey = (child.key as ValueKey).value as String;
 
-          final int newIndex = _screenOrder[newScreenKey] ?? 99;
-          final int oldIndex = _screenOrder[_previousScreen] ?? 99;
+            final int newIndex = _screenOrder[newScreenKey] ?? 99;
+            final int oldIndex = _screenOrder[_previousScreen] ?? 99;
 
-          var beginOffset = const Offset(1.0, 0.0);
-          if (newIndex < oldIndex) {
-            beginOffset = const Offset(-1.0, 0.0);
-          }
+            var beginOffset = const Offset(1.0, 0.0);
+            if (newIndex < oldIndex) {
+              beginOffset = const Offset(-1.0, 0.0);
+            }
 
-          final curvedAnimation = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeInOutCubic,
-          );
+            final curvedAnimation = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeInOutCubic,
+            );
 
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: beginOffset,
-              end: Offset.zero,
-            ).animate(curvedAnimation),
-            child: FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
-          );
-        },
-        child: _buildCurrentScreen(),
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: beginOffset,
+                end: Offset.zero,
+              ).animate(curvedAnimation),
+              child: FadeTransition(
+                opacity: animation,
+                child: child,
+              ),
+            );
+          },
+          child: _buildCurrentScreen(),
+        ),
       ),
     );
   }

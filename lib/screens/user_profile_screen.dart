@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'single_purpose_camera_screen.dart'; // Import the new camera screen
 import '../l10n/app_localizations.dart';
+import '../constants/api_config.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final Function(String) onNavigate;
@@ -38,10 +42,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final appLocalizations = AppLocalizations.of(context)!;
     setState(() {
       _userInfo = {
-        'full_name': appLocalizations.get('loading') ?? 'Loading...',
-        'email': appLocalizations.get('loading') ?? 'Loading...',
-        'phone': appLocalizations.get('loading') ?? 'Loading...',
-        'username': appLocalizations.get('loading') ?? 'Loading...',
+        'full_name': appLocalizations.get('loading'),
+        'email': appLocalizations.get('loading'),
+        'phone': appLocalizations.get('loading'),
+        'username': appLocalizations.get('loading'),
         'avatar_url': null,
       };
     });
@@ -55,6 +59,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _phoneController.dispose();
     _usernameController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _getAuthToken() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        return data['access_token'] as String?;
+      }
+    } catch (e) {
+      print("Lỗi khi lấy token: $e");
+    }
+    return null;
   }
 
   Future<void> _loadDataFromDevice() async {
@@ -92,6 +111,75 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     } catch (e) {
       print('LỖI KHI TẢI DỮ LIỆU: $e');
+    } finally {
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
+    }
+  }
+  
+  Future<void> _handleAvatarChange(BuildContext context) async {
+    final XFile? confirmedImage = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SinglePurposeCameraScreen()),
+    );
+
+    if (confirmedImage != null) {
+      _uploadAvatar(confirmedImage);
+    }
+  }
+
+  Future<void> _uploadAvatar(XFile imageFile) async {
+    final appLocalizations = AppLocalizations.of(context)!;
+    final String? token = await _getAuthToken();
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appLocalizations.get('auth_error'))),
+      );
+      return;
+    }
+
+    setState(() { _isLoading = true; });
+
+    try {
+      final url = Uri.parse(ApiConfig.updateUserAvatar);
+      final request = http.MultipartRequest('POST', url);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final updatedUser = json.decode(response.body);
+        final directory = await getApplicationDocumentsDirectory();
+        final dataFile = File('${directory.path}/data/userdata.js');
+        Map<String, dynamic> localData = {};
+
+        if (await dataFile.exists()) {
+          localData = json.decode(await dataFile.readAsString());
+        }
+
+        localData['user'] = updatedUser;
+        await dataFile.writeAsString(json.encode(localData));
+        
+        setState(() {
+          _userInfo['avatar_url'] = updatedUser['avatar_url'];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(appLocalizations.get('avatar_update_success'))),
+        );
+
+      } else {
+        throw Exception('${appLocalizations.get('upload_failed')}${response.statusCode}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${appLocalizations.get('generic_error')}${e.toString().replaceAll("Exception: ", "")}')),
+      );
     } finally {
       if (mounted) {
         setState(() { _isLoading = false; });
@@ -172,7 +260,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildAvatarSection() {
     return Center(
-      child: _buildAvatar(),
+      child: Stack(
+        children: [
+          _buildAvatar(),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 48, 
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2563EB),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => _handleAvatarChange(context),
+                icon: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

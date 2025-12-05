@@ -108,6 +108,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _submitPost() async {
+    // ignore: unused_local_variable
     final appLocalizations = AppLocalizations.of(context)!;
     if (_titleController.text.isEmpty || _locationController.text.isEmpty || _captionController.text.isEmpty || _imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(

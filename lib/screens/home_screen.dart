@@ -20,7 +20,7 @@ enum SortDirection { ascending, descending }
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentPage = 1;
-  final int _itemsPerPage = 5;
+  final int _itemsPerPage = 1000;
   final TextEditingController _searchController = TextEditingController();
 
   SortCriteria _sortCriteria = SortCriteria.date;
