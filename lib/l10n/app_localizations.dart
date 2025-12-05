@@ -18,6 +18,12 @@ class AppLocalizations {
       'show_less': '<< Show less',
       'show_more': '... Show more >>',
 
+      // Exit Dialog
+      'exit_dialog_title': 'Leaving so soon? 🥺',
+      'exit_dialog_content': 'Are you sure you want to exit Letra?',
+      'exit_dialog_yes': 'Yes, exit',
+      'exit_dialog_no': 'Stay',
+
       // Emergency Screen
       'emergency_warning': 'This feature should only be used in an emergency',
       'current_location_label': 'Your Current Location',
@@ -182,6 +188,12 @@ class AppLocalizations {
       'loading': 'Đang tải...',
       'show_less': '<< Thu gọn',
       'show_more': '... Xem thêm >>',
+
+      // Exit Dialog
+      'exit_dialog_title': 'Bạn đã muốn rời đi rồi sao? 🥺',
+      'exit_dialog_content': 'Bạn có chắc muốn thoát khỏi Letra không?',
+      'exit_dialog_yes': 'Thoát',
+      'exit_dialog_no': 'Ở lại',
 
       // Emergency Screen
       'emergency_warning': 'Chức năng này chỉ sử dụng trong trường hợp khẩn cấp',

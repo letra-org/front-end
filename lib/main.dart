@@ -105,30 +105,67 @@ class _AppNavigatorState extends State<AppNavigator> {
 
   void _navigateToScreen(String screen, {Map<String, dynamic>? data}) {
     setState(() {
-      if (_currentScreen != screen) {
+      if (screen == 'welcome' || screen == 'login') {
+        _history.clear();
         _history.add(screen);
+      } else {
+        if (_currentScreen != screen) {
+          _history.add(screen);
+        }
       }
+
       if (data != null) {
         _screenData.clear();
         _screenData.addAll(data);
       }
     });
   }
+
+  void _navigateToAsNewRoot(String screen) {
+    setState(() {
+      _history.clear();
+      _history.add(screen);
+    });
+  }
   
+  Future<void> _showExitDialog() async {
+    final appLocalizations = AppLocalizations.of(context)!;
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(appLocalizations.get('exit_dialog_title')),
+        content: Text(appLocalizations.get('exit_dialog_content')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(appLocalizations.get('exit_dialog_no')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(appLocalizations.get('exit_dialog_yes')),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit ?? false) {
+      SystemNavigator.pop();
+    }
+  }
+
   void _handleBack() {
-     if (_history.length > 1) {
+    if (_history.length > 1) {
       setState(() {
         _history.removeLast();
       });
     } else {
-      SystemNavigator.pop();
+      _showExitDialog();
     }
   }
 
   void _handleLogout() {
     setState(() {
-      _history.clear();
-      _history.add('login');
+       _navigateToAsNewRoot('login');
       _screenData.clear();
     });
   }
@@ -143,20 +180,20 @@ class _AppNavigatorState extends State<AppNavigator> {
       case 'login':
         return LoginScreen(
           key: const ValueKey('login'),
-          onLogin: () => _navigateToScreen('home'),
+          onLogin: () => _navigateToAsNewRoot('home'),
           onNavigateToRegister: () => _navigateToScreen('register'),
           onNavigateToForgotPassword: () => _navigateToScreen('forgotPassword'),
         );
       case 'register':
         return RegisterScreen(
           key: const ValueKey('register'),
-          onRegister: () => _navigateToScreen('home'),
-          onBackToLogin: () => _navigateToScreen('login'),
+          onRegister: () => _navigateToAsNewRoot('home'),
+          onBackToLogin: _handleBack,
         );
       case 'forgotPassword':
         return ForgotPasswordScreen(
           key: const ValueKey('forgotPassword'),
-          onBackToLogin: () => _navigateToScreen('login'),
+          onBackToLogin: _handleBack,
         );
       case 'home':
         return HomeScreen(
