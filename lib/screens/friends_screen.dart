@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart'; // Import shimmer
+
 import '../constants/api_config.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/bottom_navigation_bar.dart';
@@ -39,6 +41,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   Future<void> _fetchFriends() async {
     setState(() => _isLoading = true);
+    // Simulate delay for shimmer effect
+    await Future.delayed(const Duration(milliseconds: 1500));
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -197,9 +201,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildFriendsLoading(context)
                 : _filteredFriends.isEmpty
-                    ? const Center(child: Text('You have no friends yet. Add one!'))
+                    ? Center(child: Text(appLocalizations.get('no_friends_found')))
                     : ListView.builder(
                         itemCount: _filteredFriends.length,
                         itemBuilder: (context, index) {
@@ -254,6 +258,25 @@ class _FriendsScreenState extends State<FriendsScreen> {
       bottomNavigationBar: BottomNavigationBarWidget(
         currentScreen: 'friends',
         onNavigate: widget.onNavigate,
+      ),
+    );
+  }
+
+  Widget _buildFriendsLoading(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Shimmer.fromColors(
+      baseColor: isDarkMode ? Colors.grey[850]! : Colors.grey[300]!,
+      highlightColor: isDarkMode ? Colors.grey[700]! : Colors.grey[100]!,
+      child: ListView.builder(
+        itemCount: 8,
+        itemBuilder: (_, __) => Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: ListTile(
+            leading: const CircleAvatar(backgroundColor: Colors.white),
+            title: Container(width: 150, height: 16, color: Colors.white),
+            subtitle: Container(width: 100, height: 12, color: Colors.white),
+          ),
+        ),
       ),
     );
   }

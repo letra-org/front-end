@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:device_preview/device_preview.dart';
+import 'package:animations/animations.dart'; // Import animations package
+
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -21,7 +23,7 @@ import 'screens/app_info_screen.dart';
 import 'screens/emergency_location_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/chat_screen.dart';
-import 'screens/ai_landmark_result_screen.dart'; // Import màn hình mới
+import 'screens/ai_landmark_result_screen.dart'; 
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'constants/app_theme.dart';
@@ -30,7 +32,6 @@ import 'l10n/app_localizations.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set portrait mode only
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -64,7 +65,7 @@ class LetraApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          locale: languageProvider.currentLocale, // Use the app's language provider
+          locale: languageProvider.currentLocale, 
           supportedLocales: const [
             Locale('en', ''),
             Locale('vi', ''),
@@ -90,235 +91,86 @@ class AppNavigator extends StatefulWidget {
 }
 
 class _AppNavigatorState extends State<AppNavigator> {
-  final List<String> _history = ['welcome'];
-  String get _currentScreen => _history.last;
-  String get _previousScreen => _history.length > 1 ? _history[_history.length - 2] : _history.last;
-
+  String _currentScreen = 'welcome';
   final Map<String, dynamic> _screenData = {};
-
-  final Map<String, int> _screenOrder = const {
-    'home': 0,
-    'photos': 1,
-    'ai': 2,
-    'settings': 3,
-    'friends': 4,
-  };
 
   void _navigateToScreen(String screen, {Map<String, dynamic>? data}) {
     setState(() {
-      if (screen == 'welcome' || screen == 'login') {
-        _history.clear();
-        _history.add(screen);
-      } else {
-        if (_currentScreen != screen) {
-          _history.add(screen);
-        }
-      }
-
+      _currentScreen = screen;
       if (data != null) {
         _screenData.clear();
         _screenData.addAll(data);
       }
     });
   }
-
-  void _navigateToAsNewRoot(String screen) {
-    setState(() {
-      _history.clear();
-      _history.add(screen);
-    });
-  }
   
-  Future<void> _showExitDialog() async {
-    final appLocalizations = AppLocalizations.of(context)!;
-    final shouldExit = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(appLocalizations.get('exit_dialog_title')),
-        content: Text(appLocalizations.get('exit_dialog_content')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(appLocalizations.get('exit_dialog_no')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(appLocalizations.get('exit_dialog_yes')),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldExit ?? false) {
-      SystemNavigator.pop();
-    }
-  }
-
-  void _handleBack() {
-    if (_history.length > 1) {
-      setState(() {
-        _history.removeLast();
-      });
-    } else {
-      _showExitDialog();
-    }
-  }
-
   void _handleLogout() {
+    // This should clear all user data and navigate to login
     setState(() {
-       _navigateToAsNewRoot('login');
-      _screenData.clear();
+      _currentScreen = 'login';
+       _screenData.clear();
     });
   }
 
   Widget _buildCurrentScreen() {
     switch (_currentScreen) {
       case 'welcome':
-        return WelcomeScreen(
-          key: const ValueKey('welcome'),
-          onLogin: () => _navigateToScreen('login'),
-        );
+        return WelcomeScreen(key: const ValueKey('welcome'), onLogin: () => _navigateToScreen('login'));
       case 'login':
-        return LoginScreen(
-          key: const ValueKey('login'),
-          onLogin: () => _navigateToAsNewRoot('home'),
-          onNavigateToRegister: () => _navigateToScreen('register'),
-          onNavigateToForgotPassword: () => _navigateToScreen('forgotPassword'),
-        );
+        return LoginScreen(key: const ValueKey('login'), onLogin: () => _navigateToScreen('home'), onNavigateToRegister: () => _navigateToScreen('register'), onNavigateToForgotPassword: () => _navigateToScreen('forgotPassword'));
       case 'register':
-        return RegisterScreen(
-          key: const ValueKey('register'),
-          onRegister: () => _navigateToAsNewRoot('home'),
-          onBackToLogin: _handleBack,
-        );
+        return RegisterScreen(key: const ValueKey('register'), onRegister: () => _navigateToScreen('home'), onBackToLogin: () => _navigateToScreen('login'));
       case 'forgotPassword':
-        return ForgotPasswordScreen(
-          key: const ValueKey('forgotPassword'),
-          onBackToLogin: _handleBack,
-        );
+        return ForgotPasswordScreen(key: const ValueKey('forgotPassword'), onBackToLogin: () => _navigateToScreen('login'));
       case 'home':
-        return HomeScreen(
-          key: const ValueKey('home'),
-          onNavigate: _navigateToScreen,
-        );
+        return HomeScreen(key: const ValueKey('home'), onNavigate: _navigateToScreen);
       case 'photos':
-        return PhotosScreen(
-          key: const ValueKey('photos'),
-          onNavigate: _navigateToScreen,
-          isPickerMode: _screenData.containsKey('isPickerMode') ? _screenData['isPickerMode'] : false,
-        );
+        return PhotosScreen(key: const ValueKey('photos'), onNavigate: _navigateToScreen, isPickerMode: _screenData.containsKey('isPickerMode') ? _screenData['isPickerMode'] : false);
       case 'ai':
-        return AIScreen(
-          key: const ValueKey('ai'),
-          onNavigate: _navigateToScreen,
-        );
+        return AIScreen(key: const ValueKey('ai'), onNavigate: _navigateToScreen);
       case 'settings':
-        return SettingsScreen(
-          key: const ValueKey('settings'),
-          onNavigate: _navigateToScreen,
-          onLogout: _handleLogout,
-        );
+        return SettingsScreen(key: const ValueKey('settings'), onNavigate: _navigateToScreen, onLogout: _handleLogout);
       case 'userProfile':
-        return UserProfileScreen(
-          key: const ValueKey('userProfile'),
-          onNavigate: _navigateToScreen,
-        );
+        return UserProfileScreen(key: const ValueKey('userProfile'), onNavigate: _navigateToScreen);
       case 'changePassword':
-        return ChangePasswordScreen(
-          key: const ValueKey('changePassword'),
-          onNavigate: _navigateToScreen,
-        );
+        return ChangePasswordScreen(key: const ValueKey('changePassword'), onNavigate: _navigateToScreen);
       case 'createPost':
-        return CreatePostScreen(
-          key: const ValueKey('createPost'),
-          onNavigate: _navigateToScreen,
-        );
+        return CreatePostScreen(key: const ValueKey('createPost'), onNavigate: _navigateToScreen);
       case 'team':
-        return TeamScreen(
-          key: const ValueKey('team'),
-          onNavigate: _navigateToScreen,
-        );
+        return TeamScreen(key: const ValueKey('team'), onNavigate: _navigateToScreen);
       case 'sponsors':
-        return SponsorsScreen(
-          key: const ValueKey('sponsors'),
-          onNavigate: _navigateToScreen,
-        );
+        return SponsorsScreen(key: const ValueKey('sponsors'), onNavigate: _navigateToScreen);
       case 'appInfo':
-        return AppInfoScreen(
-          key: const ValueKey('appInfo'),
-          onNavigate: _navigateToScreen,
-        );
+        return AppInfoScreen(key: const ValueKey('appInfo'), onNavigate: _navigateToScreen);
       case 'emergency':
-        return EmergencyLocationScreen(
-          key: const ValueKey('emergency'),
-          onNavigate: _navigateToScreen,
-        );
+        return EmergencyLocationScreen(key: const ValueKey('emergency'), onNavigate: _navigateToScreen);
       case 'friends':
-        return FriendsScreen(
-          key: const ValueKey('friends'),
-          onNavigate: _navigateToScreen,
-        );
-      case 'chat':
-        return ChatScreen(
-          key: const ValueKey('chat'),
-          onNavigate: _navigateToScreen,
-          friendName: _screenData['friendName'] ?? '',
-          friendAvatar: _screenData['friendAvatar'] ?? '',
-        );
-      case 'aiLandmarkResult': // Thêm case mới
+        return FriendsScreen(key: const ValueKey('friends'), onNavigate: _navigateToScreen);
+      case 'aiLandmarkResult': 
         return AiLandmarkResultScreen(
           key: const ValueKey('aiLandmarkResult'),
           onNavigate: _navigateToScreen,
-          markdownContent: _screenData['markdownContent'] as String? ?? '# Lỗi\n\nKhông thể tải nội dung.',
+          markdownContent: _screenData['markdownContent'] as String? ?? '# Error\n\nCould not load content.',
         );
       default:
-        return WelcomeScreen(
-          key: const ValueKey('default'),
-          onLogin: () => _navigateToScreen('login'),
-        );
+        return WelcomeScreen(key: const ValueKey('default'), onLogin: () => _navigateToScreen('login'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (didPop) return;
-        _handleBack();
-      },
-      child: Scaffold(
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 500),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            final newScreenKey = (child.key as ValueKey).value as String;
-
-            final int newIndex = _screenOrder[newScreenKey] ?? 99;
-            final int oldIndex = _screenOrder[_previousScreen] ?? 99;
-
-            var beginOffset = const Offset(1.0, 0.0);
-            if (newIndex < oldIndex) {
-              beginOffset = const Offset(-1.0, 0.0);
-            }
-
-            final curvedAnimation = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeInOutCubic,
-            );
-
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: beginOffset,
-                end: Offset.zero,
-              ).animate(curvedAnimation),
-              child: FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
-            );
-          },
-          child: _buildCurrentScreen(),
-        ),
+    return Scaffold(
+      body: PageTransitionSwitcher(
+        duration: const Duration(milliseconds: 600),
+        transitionBuilder: (Widget child, Animation<double> primaryAnimation, Animation<double> secondaryAnimation) {
+          return SharedAxisTransition(
+            animation: primaryAnimation,
+            secondaryAnimation: secondaryAnimation,
+            transitionType: SharedAxisTransitionType.horizontal,
+            child: child,
+          );
+        },
+        child: _buildCurrentScreen(),
       ),
     );
   }

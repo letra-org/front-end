@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart'; // Import shimmer
 
 import '../constants/api_config.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../l10n/app_localizations.dart';
-import './post_detail_screen.dart'; // Import the new detail screen
+import './post_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(String, {Map<String, dynamic> data}) onNavigate;
@@ -33,6 +34,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!loadMore) {
       setState(() => _isLoading = true);
     }
+
+    // Simulate network delay for demo purposes
+    await Future.delayed(const Duration(seconds: 2));
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -63,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'id': post['id'].toString(),
               'author': user?['full_name'] ?? 'Unknown User',
               'avatarUrl': user?['avatar_url'],
-              'time': post['created_at'], // Store the original timestamp
+              'time': post['created_at'], 
               'content': post['content'],
               'imageUrl': post['media_url'],
               'likes': post['likes_count'] ?? 0,
@@ -127,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: RefreshIndicator(
         onRefresh: () => _fetchPosts(),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildPostsLoading(context)
             : _posts.isEmpty
                 ? Center(child: Text(appLocalizations.get('no_posts_to_show')))
                 : ListView.builder(
@@ -156,6 +160,52 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildPostsLoading(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Shimmer.fromColors(
+      baseColor: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+      highlightColor: isDarkMode ? Colors.grey[700]! : Colors.grey[100]!,
+      child: ListView.builder(
+        itemCount: 5,
+        itemBuilder: (context, index) => _buildPostCardSkeleton(),
+      ),
+    );
+  }
+
+  Widget _buildPostCardSkeleton() {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const CircleAvatar(radius: 22, backgroundColor: Colors.white),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 120, height: 16, color: Colors.white),
+                    const SizedBox(height: 4),
+                    Container(width: 80, height: 12, color: Colors.white),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(width: double.infinity, height: 14, color: Colors.white),
+            const SizedBox(height: 6),
+            Container(width: MediaQuery.of(context).size.width * 0.6, height: 14, color: Colors.white),
+            const SizedBox(height: 12),
+            Container(width: double.infinity, height: 200, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPostCard(Map<String, dynamic> post, AppLocalizations appLocalizations) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -168,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
               post['content'] ?? '',
-              maxLines: 4, // Limit lines in the list view
+              maxLines: 4,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -178,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
               placeholder: (context, url) => Container(height: 200, color: Colors.grey[200]),
               errorWidget: (context, url, error) => const Icon(Icons.error),
               width: double.infinity,
-              height: 200, // Fixed height for consistency
+              height: 200, 
               fit: BoxFit.cover,
             ),
           _buildPostActions(post, appLocalizations),
@@ -188,8 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildPostHeader(Map<String, dynamic> post, AppLocalizations appLocalizations) {
-    // A proper implementation would format the `post['time']` timestamp.
-    // For now, we use a localized string for "Just now".
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: Row(

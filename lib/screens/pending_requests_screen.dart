@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart'; // Import shimmer
+
 import '../constants/api_config.dart';
 
 class PendingRequestsScreen extends StatefulWidget {
@@ -28,6 +30,8 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
 
   Future<void> _fetchPendingRequests() async {
     setState(() => _isLoading = true);
+    // Simulate delay for shimmer effect
+    await Future.delayed(const Duration(milliseconds: 1500));
 
     final token = await _getToken();
     if (token == null) {
@@ -51,7 +55,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
         setState(() {
           _pendingRequests = data.map((req) => {
-            'request_id': req['id'], // This is the friendship_id (integer)
+            'request_id': req['id'],
             'user_info': req['requester'],
           }).toList();
         });
@@ -72,26 +76,30 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
       return;
     }
 
-    final url = accept 
+    final url = accept
         ? Uri.parse(ApiConfig.acceptFriendRequest)
         : Uri.parse(ApiConfig.rejectFriendRequest);
 
     try {
+      final friendshipId = int.tryParse(requestId.toString());
+      if (friendshipId == null) {
+        throw Exception('Invalid request ID format.');
+      }
+
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
         },
-        // Use the ID directly, as it should already be an integer from the API response.
-        body: jsonEncode({'friendship_id': requestId}),
+        body: jsonEncode({'friendship_id': friendshipId}),
       );
 
       if (response.statusCode == 200) {
         _showSnackbar('Request ${accept ? 'accepted' : 'rejected'} successfully.');
         _fetchPendingRequests(); // Refresh the list
       } else {
-         final responseBody = json.decode(response.body);
+        final responseBody = json.decode(response.body);
         final detail = responseBody['detail'] ?? 'Unknown error';
         throw Exception('Failed to ${accept ? 'accept' : 'reject'} request: $detail');
       }
@@ -117,23 +125,23 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
         title: const Text('Pending Friend Requests'),
         backgroundColor: const Color(0xFF2563EB),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _pendingRequests.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No pending friend requests.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchPendingRequests,
-                  child: ListView.builder(
+      body: RefreshIndicator(
+        onRefresh: _fetchPendingRequests,
+        child: _isLoading
+            ? _buildRequestsLoading(context)
+            : _pendingRequests.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No pending friend requests.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                : ListView.builder(
                     itemCount: _pendingRequests.length,
                     itemBuilder: (context, index) {
                       final request = _pendingRequests[index];
                       final userInfo = request['user_info'] as Map<String, dynamic>;
-                      final requestId = request['request_id']; // This is the friendship_id
+                      final requestId = request['request_id'];
                       final name = userInfo['full_name'] ?? 'No Name';
                       final avatarUrl = userInfo['avatar_url'] as String?;
 
@@ -142,9 +150,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: const Color(0xFF2563EB),
-                            backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) 
-                                ? NetworkImage(avatarUrl) 
-                                : null,
+                            backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
                             child: (avatarUrl == null || avatarUrl.isEmpty)
                                 ? Text(
                                     name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -172,7 +178,33 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                       );
                     },
                   ),
-                ),
+      ),
+    );
+  }
+
+  Widget _buildRequestsLoading(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Shimmer.fromColors(
+      baseColor: isDarkMode ? Colors.grey[850]! : Colors.grey[300]!,
+      highlightColor: isDarkMode ? Colors.grey[700]! : Colors.grey[100]!,
+      child: ListView.builder(
+        itemCount: 8,
+        itemBuilder: (_, __) => Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: ListTile(
+            leading: const CircleAvatar(backgroundColor: Colors.white),
+            title: Container(width: 150, height: 16, color: Colors.white),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 24, height: 24, color: Colors.white),
+                const SizedBox(width: 16),
+                Container(width: 24, height: 24, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
