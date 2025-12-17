@@ -28,14 +28,14 @@ final List<TeamMember> teamData = [
   ),
   const TeamMember(
     name: 'Lê Nguyễn Anh Trí',
-    role: 'Backend',
-    bio: 'Làm thinh',
+    role: 'Backend Developer',
+    bio: 'Chịu trách nhiệm chính trong việc thiết kế và xây dựng các API cốt lõi của ứng dụng, đảm bảo hệ thống backend hoạt động ổn định, hiệu quả và có khả năng mở rộng.',
     assetPath: 'assets/images/team/Anh_Tri.jpg',
   ),
   const TeamMember(
     name: 'Phạm Công Khánh',
-    role: 'Backend',
-    bio: 'Thêm sau',
+    role: 'Backend Developer',
+    bio: 'Tập trung vào việc xây dựng cơ sở dữ liệu, tối ưu hóa truy vấn và quản lý logic phía máy chủ, góp phần quan trọng vào sự ổn định và tốc độ của toàn bộ hệ thống.',
     assetPath: 'assets/images/team/Cong_Khanh.jpg',
   ),
   const TeamMember(
@@ -116,7 +116,7 @@ class TeamScreen extends StatelessWidget {
                   return TeamMemberCard(member: member);
                 }).toList(),
               ],
-            ),
+            ),           
           ),
         ],
       ),

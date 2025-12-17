@@ -59,12 +59,16 @@ class BottomNavigationBarWidget extends StatelessWidget {
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Icon(
-            icon,
-            color: isActive
-                ? const Color(0xFF2563EB)
-                : Colors.grey,
-            size: 28,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: Icon(
+              icon,
+              color: isActive
+                  ? const Color(0xFF2563EB)
+                  : Colors.grey,
+              size: isActive ? 34 : 28, // Change size based on active state
+            ),
           ),
         ),
       ),
