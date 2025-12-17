@@ -21,6 +21,7 @@ import 'screens/app_info_screen.dart';
 import 'screens/emergency_location_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/ai_landmark_result_screen.dart'; // Import màn hình mới
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'constants/app_theme.dart';
@@ -263,6 +264,12 @@ class _AppNavigatorState extends State<AppNavigator> {
           onNavigate: _navigateToScreen,
           friendName: _screenData['friendName'] ?? '',
           friendAvatar: _screenData['friendAvatar'] ?? '',
+        );
+      case 'aiLandmarkResult': // Thêm case mới
+        return AiLandmarkResultScreen(
+          key: const ValueKey('aiLandmarkResult'),
+          onNavigate: _navigateToScreen,
+          markdownContent: _screenData['markdownContent'] as String? ?? '# Lỗi\n\nKhông thể tải nội dung.',
         );
       default:
         return WelcomeScreen(

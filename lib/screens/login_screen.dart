@@ -4,6 +4,7 @@ import 'dart:convert'; // Required for json encoding
 import 'package:http/http.dart' as http; // Required for HTTP requests
 import 'package:path_provider/path_provider.dart'; // For file storage
 import 'dart:io'; // For file operations
+import 'package:shared_preferences/shared_preferences.dart'; // For saving the token
 import '../l10n/app_localizations.dart';
 import '../constants/api_config.dart';
 
@@ -79,11 +80,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text;
     final password = _passwordController.text;
     final appLocalizations = AppLocalizations.of(context)!;
+    final prefs = await SharedPreferences.getInstance();
 
     if (email == 'dev@test.com' && password == 'dev') {
       print('--- Performing local developer login ---');
+      const devToken = 'local_dev_token';
       final mockUserData = {
-        'access_token': 'local_dev_token',
+        'access_token': devToken,
         'refresh_token': 'local_dev_refresh_token',
         'user': {
           'id': 'dev-user-01',
@@ -93,7 +96,8 @@ class _LoginScreenState extends State<LoginScreen> {
           'is_active': true,
         }
       };
-      
+
+      await prefs.setString('token', devToken); // Save dev token
       await _saveUserData(json.encode(mockUserData));
       widget.onLogin();
       return;
@@ -113,6 +117,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (loginResponse.statusCode == 200 || loginResponse.statusCode == 201) {
         final loginData = json.decode(loginResponse.body);
         final accessToken = loginData['access_token'];
+
+        if (accessToken != null) {
+          await prefs.setString('token', accessToken);
+        } else {
+          throw Exception('Access token not found in login response');
+        }
 
         final userDetailsUrl = Uri.parse(ApiConfig.currentUser);
         final userDetailsResponse = await http.get(
@@ -148,6 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

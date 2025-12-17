@@ -5,7 +5,7 @@ import '../screens/camera_screen.dart'; // Import màn hình camera mới
 
 class BottomNavigationBarWidget extends StatelessWidget {
   final String currentScreen;
-  final Function(String) onNavigate;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
 
   const BottomNavigationBarWidget({
     super.key,
@@ -17,7 +17,7 @@ class BottomNavigationBarWidget extends StatelessWidget {
   void _openCamera(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CameraScreen()),
+      MaterialPageRoute(builder: (context) => CameraScreen(onNavigate: onNavigate)),
     );
   }
 

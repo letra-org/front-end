@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:gal/gal.dart';
@@ -9,7 +12,7 @@ import '../l10n/app_localizations.dart';
 import 'camera_screen.dart';
 
 class PhotosScreen extends StatefulWidget {
-  final Function(String, {Map<String, dynamic>? data}) onNavigate;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
   final bool isPickerMode;
 
   const PhotosScreen({
@@ -25,6 +28,7 @@ class PhotosScreen extends StatefulWidget {
 class _PhotosScreenState extends State<PhotosScreen> {
   List<File> _photos = [];
   bool _isLoading = true;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -47,7 +51,36 @@ class _PhotosScreenState extends State<PhotosScreen> {
       print('Error loading photos: $e');
       _photos = [];
     } finally {
-      setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() { _isLoading = false; });
+      }
+    }
+  }
+
+  Future<void> _deletePhoto(File photo) async {
+    try {
+      await photo.delete();
+      _loadPhotos(); // Refresh the list
+    } catch (e) {
+      print('Error deleting photo: $e');
+    }
+  }
+
+  Future<void> _pickAndSaveImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final photosDir = Directory('${directory.path}/photos');
+      if (!await photosDir.exists()) {
+        await photosDir.create(recursive: true);
+      }
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(image.path).copy('${photosDir.path}/$fileName');
+      _loadPhotos(); // Refresh the list
+    } catch (e) {
+      print('Error saving image: $e');
     }
   }
 
@@ -70,10 +103,15 @@ class _PhotosScreenState extends State<PhotosScreen> {
         actions: [
           if (!widget.isPickerMode)
             IconButton(
+                icon: const Icon(Icons.add_photo_alternate),
+                onPressed: _pickAndSaveImage,
+                tooltip: 'Thêm từ thư viện',
+            ),
+            IconButton(
               icon: const Icon(Icons.camera_alt),
               onPressed: () async {
                 final result = await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const CameraScreen()),
+                  MaterialPageRoute(builder: (context) => CameraScreen(onNavigate: widget.onNavigate)),
                 );
                 if (result == true) {
                   _loadPhotos(); // Refresh photos after taking a new one
@@ -108,7 +146,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => PhotoViewScreen(photo: photo),
+                              builder: (context) => PhotoViewScreen(photo: photo, onDelete: _deletePhoto, onNavigate: widget.onNavigate),
                             ),
                           );
                         }
@@ -127,10 +165,65 @@ class _PhotosScreenState extends State<PhotosScreen> {
   }
 }
 
-class PhotoViewScreen extends StatelessWidget {
+class PhotoViewScreen extends StatefulWidget {
   final File photo;
+  final Future<void> Function(File) onDelete;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
 
-  const PhotoViewScreen({super.key, required this.photo});
+  const PhotoViewScreen({super.key, required this.photo, required this.onDelete, required this.onNavigate});
+
+  @override
+  State<PhotoViewScreen> createState() => _PhotoViewScreenState();
+}
+
+class _PhotoViewScreenState extends State<PhotoViewScreen> {
+  bool _isProcessing = false;
+  final String _gradioApiUrl = 'http://127.0.0.1:7860/api/gradio_predict';
+
+  Future<void> _sendToAIAndNavigate() async {
+    if (_isProcessing) return;
+    setState(() { _isProcessing = true; });
+
+    try {
+      final bytes = await widget.photo.readAsBytes();
+      String base64Image = base64Encode(bytes);
+
+      final response = await http.post(
+        Uri.parse(_gradioApiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "data": [
+            "data:image/jpeg;base64,$base64Image",
+            3 // top_k value
+          ]
+        }),
+      );
+
+      if (mounted) {
+          if (response.statusCode == 200) {
+          final result = jsonDecode(response.body);
+          final markdownContent = result['data'][0] as String;
+
+          widget.onNavigate(
+            'aiLandmarkResult',
+            data: {'markdownContent': markdownContent},
+          );
+        } else {
+          throw Exception('Lỗi từ máy chủ AI: ${response.statusCode}\n${response.body}');
+        }
+      }
+    } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: $e')),
+          );
+        }
+    } finally {
+      if (mounted) {
+        setState(() { _isProcessing = false; });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,12 +233,17 @@ class PhotoViewScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome), // AI Icon
+            onPressed: _sendToAIAndNavigate,
+            tooltip: 'Nhận diện AI',
+          ),
           if (isMobile)
             IconButton(
               icon: const Icon(Icons.save_alt),
               onPressed: () async {
                 try {
-                  await Gal.putImage(photo.path);
+                  await Gal.putImage(widget.photo.path);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(appLocalizations.get('save_success'))),
                   );
@@ -155,14 +253,59 @@ class PhotoViewScreen extends StatelessWidget {
                   );
                 }
               },
-            )
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () async {
+                final confirmDelete = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Xác nhận xóa'),
+                    content: const Text('Bạn có chắc chắn muốn xóa ảnh này?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('Hủy'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('Xóa'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmDelete == true) {
+                  await widget.onDelete(widget.photo);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
         ],
       ),
-      body: PhotoView(
-        imageProvider: FileImage(photo),
-        heroAttributes: PhotoViewHeroAttributes(tag: photo.path),
-        minScale: PhotoViewComputedScale.contained,
-        maxScale: PhotoViewComputedScale.covered * 2,
+      body: Stack(
+        children: [
+          PhotoView(
+            imageProvider: FileImage(widget.photo),
+            heroAttributes: PhotoViewHeroAttributes(tag: widget.photo.path),
+            minScale: PhotoViewComputedScale.contained,
+            maxScale: PhotoViewComputedScale.covered * 2,
+          ),
+          if (_isProcessing)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 16),
+                    Text("AI đang nhận diện...", style: TextStyle(color: Colors.white, fontSize: 18)),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

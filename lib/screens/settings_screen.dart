@@ -12,7 +12,7 @@ import '../l10n/app_localizations.dart';
 import '../constants/api_config.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final Function(String) onNavigate;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
   final VoidCallback onLogout;
 
   const SettingsScreen({

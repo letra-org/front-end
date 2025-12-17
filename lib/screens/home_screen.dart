@@ -1,472 +1,247 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
-import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
+import '../constants/api_config.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../l10n/app_localizations.dart';
+import './post_detail_screen.dart'; // Import the new detail screen
 
 class HomeScreen extends StatefulWidget {
   final Function(String, {Map<String, dynamic> data}) onNavigate;
+
   const HomeScreen({super.key, required this.onNavigate});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-enum SortCriteria { date, likes }
-enum SortDirection { ascending, descending }
-
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentPage = 1;
-  final int _itemsPerPage = 1000;
-  final TextEditingController _searchController = TextEditingController();
-
-  SortCriteria _sortCriteria = SortCriteria.date;
-  SortDirection _sortDirection = SortDirection.descending;
-
-  List<Map<String, dynamic>> _allPosts = [];
-  List<Map<String, dynamic>> _filteredPosts = [];
-  bool _isLoading = true;
   String? _avatarUrl;
-  final Set<int> _likedPostIds = {};
+  List<Map<String, dynamic>> _posts = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadAllData();
-    _searchController.addListener(_filterPosts);
+    _fetchPosts();
   }
 
-  @override
-  void dispose() {
-    _searchController.removeListener(_filterPosts);
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadAllData() async {
-    if (!mounted) return;
-    setState(() { _isLoading = true; });
-
-    await Future.wait([_loadPosts(), _loadUserData()]);
-
-    if (mounted) {
-      setState(() { _isLoading = false; });
+  Future<void> _fetchPosts({bool loadMore = false}) async {
+    if (!loadMore) {
+      setState(() => _isLoading = true);
     }
-  }
 
-  Future<void> _loadUserData() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final file = File('${directory.path}/data/userdata.js');
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        final data = json.decode(content);
-        final user = data['user'] as Map<String, dynamic>?;
-        if (user != null && user['avatar_url'] != null) {
-          if (mounted) {
-            setState(() {
-              _avatarUrl = user['avatar_url'];
-            });
-          }
-        }
-      }
-    } catch (e) {
-      print("Lỗi khi tải avatar người dùng trên home_screen: $e");
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) {
+      _showSnackbar('Authentication token not found', isError: true);
+      if (mounted && !loadMore) setState(() => _isLoading = false);
+      return;
     }
-  }
 
-  Future<void> _loadPosts() async {
+    final offset = loadMore ? _posts.length : 0;
+    final uri = Uri.parse('${ApiConfig.getPosts}?offset=$offset&limit=20');
+
     try {
-      final String rawContent = await rootBundle.loadString('assets/home_status/status.txt');
-      String content = rawContent.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-      final List<String> postBlocks = content.split(RegExp(r'\n{2,}')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-      List<Map<String, dynamic>> loadedPosts = [];
-      int postId = 1;
-      for (final block in postBlocks) {
-        final Map<String, dynamic> post = {'id': postId++};
-        final lines = block.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-        for (final line in lines) {
-          final parts = line.split(':');
-          if (parts.length >= 2) {
-            final key = parts[0].trim();
-            final value = parts.sublist(1).join(':').trim();
-            if (key == 'likes') {
-              post[key] = int.tryParse(value) ?? 0;
-            } else {
-              post[key] = value;
-            }
-          }
-        }
-        if (post.containsKey('title') && post.containsKey('image')) {
-          loadedPosts.add(post);
-        }
-      }
-      if (mounted) {
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      });
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final List<dynamic> postsData = json.decode(utf8.decode(response.bodyBytes));
         setState(() {
-          _allPosts = loadedPosts;
-          _filteredPosts = List.from(_allPosts);
-          _sortPosts(); // Initial sort
-          _currentPage = 1;
+          final newPosts = postsData.map((post) {
+            final user = post['user'] as Map<String, dynamic>?;
+            return {
+              'id': post['id'].toString(),
+              'author': user?['full_name'] ?? 'Unknown User',
+              'avatarUrl': user?['avatar_url'],
+              'time': post['created_at'], // Store the original timestamp
+              'content': post['content'],
+              'imageUrl': post['media_url'],
+              'likes': post['likes_count'] ?? 0,
+              'comments': post['comments_count'] ?? 0,
+            };
+          }).toList();
+
+          if (loadMore) {
+            _posts.addAll(newPosts);
+          } else {
+            _posts = newPosts;
+          }
+          _isLoading = false;
         });
+      } else {
+        throw Exception('Failed to load posts: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error reading file assets/home_status/status.txt: $e');
+      if (mounted) {
+        _showSnackbar(e.toString(), isError: true);
+        if (!loadMore) setState(() => _isLoading = false);
+      }
     }
   }
 
-  void _filterPosts() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredPosts = _allPosts.where((post) {
-        final title = post['title']?.toLowerCase() ?? '';
-        return title.contains(query);
-      }).toList();
-      _sortPosts();
-      _currentPage = 1;
-    });
-  }
-
-  void _sortPosts() {
-    _filteredPosts.sort((a, b) {
-      int comparison;
-      if (_sortCriteria == SortCriteria.date) {
-        comparison = a['date'].compareTo(b['date']);
-      } else {
-        comparison = (a['likes'] as int).compareTo(b['likes'] as int);
-      }
-      return _sortDirection == SortDirection.ascending ? comparison : -comparison;
-    });
-  }
-
-  void _toggleLike(int postId) {
-    setState(() {
-      final isLiked = _likedPostIds.contains(postId);
-      final postIndex = _allPosts.indexWhere((p) => p['id'] == postId);
-      if (postIndex == -1) return;
-
-      if (isLiked) {
-        _likedPostIds.remove(postId);
-        _allPosts[postIndex]['likes']--;
-      } else {
-        _likedPostIds.add(postId);
-        _allPosts[postIndex]['likes']++;
-      }
-      
-      final filteredPostIndex = _filteredPosts.indexWhere((p) => p['id'] == postId);
-      if (filteredPostIndex != -1) {
-          _filteredPosts[filteredPostIndex]['likes'] = _allPosts[postIndex]['likes'];
-      }
-    });
-  }
-
-  List<Map<String, dynamic>> get _currentPosts {
-    if (_filteredPosts.isEmpty) return [];
-    final startIndex = (_currentPage - 1) * _itemsPerPage;
-    final endIndex = startIndex + _itemsPerPage;
-    return _filteredPosts.sublist(startIndex, endIndex > _filteredPosts.length ? _filteredPosts.length : endIndex);
-  }
-
-  int get _totalPages => (_filteredPosts.length / _itemsPerPage).ceil();
-
-  void _setSortOrder(SortCriteria criteria, SortDirection direction) {
-    setState(() {
-      _sortCriteria = criteria;
-      _sortDirection = direction;
-      _sortPosts();
-      _currentPage = 1;
-    });
-  }
-
-  void _changePage(int page) {
-    setState(() {
-      _currentPage = page;
-    });
+  void _showSnackbar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red : Colors.green,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
-      body: Column(
-        children: [
-          Container(
-            color: const Color(0xFF2563EB),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: () => widget.onNavigate('userProfile'),
-                      borderRadius: BorderRadius.circular(22),
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Colors.white,
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Colors.grey[300],
-                          backgroundImage: _avatarUrl != null
-                              ? CachedNetworkImageProvider(_avatarUrl!)
-                              : const AssetImage('assets/images/user/avatar.jpg') as ImageProvider,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Container(
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: TextFormField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: appLocalizations.get('search_hint'),
-                            border: InputBorder.none,
-                            prefixIcon: const Icon(Icons.search, size: 20),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    PopupMenuButton<Function>(
-                      icon: const Icon(Icons.sort, color: Colors.white),
-                      tooltip: appLocalizations.get('sort_by'),
-                      onSelected: (Function callback) => callback(),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: () => _setSortOrder(SortCriteria.date, SortDirection.descending),
-                          child: Text(appLocalizations.get('sort_by_date_newest')),
-                        ),
-                        PopupMenuItem(
-                          value: () => _setSortOrder(SortCriteria.date, SortDirection.ascending),
-                          child: Text(appLocalizations.get('sort_by_date_oldest')),
-                        ),
-                        PopupMenuItem(
-                          value: () => _setSortOrder(SortCriteria.likes, SortDirection.descending),
-                          child: Text(appLocalizations.get('sort_by_likes_most')),
-                        ),
-                        PopupMenuItem(
-                          value: () => _setSortOrder(SortCriteria.likes, SortDirection.ascending),
-                          child: Text(appLocalizations.get('sort_by_likes_least')),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredPosts.isEmpty
-                    ? Center(child: Text(appLocalizations.get('no_posts_found')))
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100), // Add padding for bottom bar
-                        itemCount: _currentPosts.length,
-                        itemBuilder: (context, index) {
-                          final post = _currentPosts[index];
-                          return _buildPostCard(post, isDarkMode);
-                        },
-                      ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!_isLoading && _totalPages > 1)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: isDarkMode ? Colors.grey[900] : Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withAlpha(12), blurRadius: 10, offset: const Offset(0, -2))],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(onPressed: _currentPage > 1 ? () => _changePage(_currentPage - 1) : null, icon: const Icon(Icons.chevron_left)),
-                          ...List.generate(_totalPages > 3 ? 3 : _totalPages, (index) {
-                            int pageNum;
-                            if (_totalPages <= 3) { pageNum = index + 1; } 
-                            else if (_currentPage <= 2) { pageNum = index + 1; }
-                            else if (_currentPage >= _totalPages - 1) { pageNum = _totalPages - 2 + index; }
-                            else { pageNum = _currentPage - 1 + index; }
-                            return InkWell(
-                              onTap: () => _changePage(pageNum),
-                              child: Container(
-                                width: 32, height: 32,
-                                margin: const EdgeInsets.symmetric(horizontal: 2),
-                                decoration: BoxDecoration(
-                                  color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: _currentPage == pageNum ? const Color(0xFF2563EB) : Colors.grey),
-                                ),
-                                child: Center(child: Text(pageNum.toString(), style: TextStyle(color: _currentPage == pageNum ? Colors.white : (isDarkMode ? Colors.white : Colors.black)))),
-                              ),
-                            );
-                          }),
-                          IconButton(onPressed: _currentPage < _totalPages ? () => _changePage(_currentPage + 1) : null, icon: const Icon(Icons.chevron_right)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final screenWidth = MediaQuery.of(context).size.width;
-                      if (screenWidth > 400) {
-                        return FloatingActionButton.extended(
-                          onPressed: () => widget.onNavigate('createPost'),
-                          label: Text(appLocalizations.get('create_post_title')),
-                          icon: const Icon(Icons.add),
-                          backgroundColor: const Color(0xFF2563EB),
-                          elevation: 2.0, 
-                        );
-                      } else {
-                        return FloatingActionButton(
-                          onPressed: () => widget.onNavigate('createPost'),
-                          child: const Icon(Icons.add),
-                          backgroundColor: const Color(0xFF2563EB),
-                          elevation: 2.0,
-                        );
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          BottomNavigationBarWidget(
-            currentScreen: 'home',
-            onNavigate: widget.onNavigate,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPostCard(Map<String, dynamic> post, bool isDarkMode) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: isDarkMode ? Colors.grey[800]! : Colors.grey[200]!, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Image.network(post['image'], fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) {
-                return Container(color: Colors.grey[300], child: const Center(child: Icon(Icons.image, size: 50)));
-              }),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(post['title'], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black)),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.location_on, size: 16, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(post['location'], style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.grey[400] : Colors.grey[600])),
-                    const Spacer(),
-                    Text(post['date'], style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[500] : Colors.grey[500])),
-                  ],
-                ),
-                if (post['caption'] != null && post['caption']!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: ExpandableText(post['caption']!),
-                  ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        _likedPostIds.contains(post['id']) ? Icons.favorite : Icons.favorite_border,
-                        color: _likedPostIds.contains(post['id']) ? Colors.red : (isDarkMode ? Colors.grey[400] : Colors.grey[600]),
-                      ),
-                      onPressed: () => _toggleLike(post['id'] as int),
-                    ),
-                    Text('${post['likes']}', style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[600])),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ExpandableText extends StatefulWidget {
-  final String text;
-  const ExpandableText(this.text, {super.key});
-
-  @override
-  State<ExpandableText> createState() => _ExpandableTextState();
-}
-
-class _ExpandableTextState extends State<ExpandableText> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final appLocalizations = AppLocalizations.of(context)!;
-    return LayoutBuilder(builder: (context, constraints) {
-      final textSpan = TextSpan(text: widget.text);
-      final textPainter = TextPainter(
-        text: textSpan,
-        maxLines: 2,
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout(maxWidth: constraints.maxWidth);
-
-      if (textPainter.didExceedMaxLines) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Row(
           children: [
-            Text(
-              widget.text,
-              maxLines: _isExpanded ? null : 2,
-              overflow: TextOverflow.ellipsis,
-            ),
             GestureDetector(
-              onTap: () => setState(() => _isExpanded = !_isExpanded),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  _isExpanded ? appLocalizations.get('show_less') : appLocalizations.get('show_more'),
-                  style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-                ),
+              onTap: () => widget.onNavigate('userProfile'),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundImage: _avatarUrl != null ? CachedNetworkImageProvider(_avatarUrl!) : null,
+                child: _avatarUrl == null ? const Icon(Icons.person, size: 24) : null,
               ),
             ),
           ],
-        );
-      } else {
-        return Text(widget.text);
-      }
-    });
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_box_outlined),
+            onPressed: () => widget.onNavigate('createPost'),
+            tooltip: appLocalizations.get('create_post_tooltip'),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => _fetchPosts(),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _posts.isEmpty
+                ? Center(child: Text(appLocalizations.get('no_posts_to_show')))
+                : ListView.builder(
+                    itemCount: _posts.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == _posts.length) {
+                        return _buildLoadMoreButton(appLocalizations);
+                      }
+                      final post = _posts[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => PostDetailScreen(post: post)),
+                          );
+                        },
+                        child: _buildPostCard(post, appLocalizations),
+                      );
+                    },
+                  ),
+      ),
+      bottomNavigationBar: BottomNavigationBarWidget(
+        currentScreen: 'home',
+        onNavigate: widget.onNavigate,
+      ),
+    );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> post, AppLocalizations appLocalizations) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildPostHeader(post, appLocalizations),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Text(
+              post['content'] ?? '',
+              maxLines: 4, // Limit lines in the list view
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (post['imageUrl'] != null)
+            CachedNetworkImage(
+              imageUrl: post['imageUrl'],
+              placeholder: (context, url) => Container(height: 200, color: Colors.grey[200]),
+              errorWidget: (context, url, error) => const Icon(Icons.error),
+              width: double.infinity,
+              height: 200, // Fixed height for consistency
+              fit: BoxFit.cover,
+            ),
+          _buildPostActions(post, appLocalizations),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostHeader(Map<String, dynamic> post, AppLocalizations appLocalizations) {
+    // A proper implementation would format the `post['time']` timestamp.
+    // For now, we use a localized string for "Just now".
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundImage: post['avatarUrl'] != null ? CachedNetworkImageProvider(post['avatarUrl']) : null,
+            child: post['avatarUrl'] == null ? const Icon(Icons.person) : null,
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(post['author'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(appLocalizations.get('just_now'), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostActions(Map<String, dynamic> post, AppLocalizations appLocalizations) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildActionButton(Icons.thumb_up_outlined, '${post['likes']}', () {}),
+          _buildActionButton(Icons.comment_outlined, '${post['comments']}', () {}),
+          _buildActionButton(Icons.share_outlined, appLocalizations.get('share'), () {}),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, String label, VoidCallback onPressed) {
+    return TextButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20, color: Colors.grey[700]),
+      label: Text(label, style: TextStyle(color: Colors.grey[700])),
+    );
+  }
+
+  Widget _buildLoadMoreButton(AppLocalizations appLocalizations) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: TextButton(
+          onPressed: () => _fetchPosts(loadMore: true),
+          child: Text(appLocalizations.get('load_more')),
+        ),
+      ),
+    );
   }
 }

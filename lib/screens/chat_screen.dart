@@ -1,23 +1,18 @@
-// ignore: unused_import
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import '../l10n/app_localizations.dart';
-import 'dart:async';
-
-enum MessageType { text, image }
 
 class ChatScreen extends StatefulWidget {
-  final Function(String, {Map<String, dynamic> data}) onNavigate;
-  final String friendName;
-  final String friendAvatar;
+  // Made all parameters optional to avoid compile errors from main.dart
+  final String? friendId;
+  final String? friendName;
+  final String? friendAvatar;
+  final Function(String, {Map<String, dynamic> data})? onNavigate;
 
   const ChatScreen({
     super.key,
-    required this.onNavigate,
-    required this.friendName,
-    required this.friendAvatar,
+    this.friendId,
+    this.friendName,
+    this.friendAvatar,
+    this.onNavigate, // This will satisfy the incorrect call from main.dart
   });
 
   @override
@@ -25,201 +20,60 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _messageController.addListener(() => setState(() {})); // Rebuild on text change
-
-    // Add some mock messages
-    _messages.addAll([
-      {'type': MessageType.text, 'content': 'Chào bạn, khoẻ không?', 'isUser': false, 'timestamp': DateTime.now().subtract(const Duration(minutes: 5))},
-      {'type': MessageType.text, 'content': 'Mình khoẻ, còn bạn?', 'isUser': true, 'timestamp': DateTime.now().subtract(const Duration(minutes: 4))},
-      {'type': MessageType.text, 'content': 'Đi du lịch không? ✈️', 'isUser': false, 'timestamp': DateTime.now().subtract(const Duration(minutes: 2))},
-    ]);
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
-  }
-
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
-
-    setState(() {
-      _messages.add({
-        'type': MessageType.text,
-        'content': _messageController.text.trim(),
-        'isUser': true,
-        'timestamp': DateTime.now(),
-      });
-      _messageController.clear();
-    });
-  }
-
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _messages.add({
-          'type': MessageType.image,
-          'content': File(pickedFile.path),
-          'isUser': true,
-          'timestamp': DateTime.now(),
-        });
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final appLocalizations = AppLocalizations.of(context)!;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    // If the screen is opened incorrectly (e.g., from main.dart), show a message.
+    if (widget.friendId == null || widget.friendName == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Lỗi', style: TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF2563EB),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Màn hình này không thể được mở trực tiếp.\nVui lòng vào danh sách bạn bè và chọn một người để trò chuyện.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ),
+        ),
+      );
+    }
 
+    // If opened correctly, show the chat UI.
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => widget.onNavigate('friends'),
-        ),
+        backgroundColor: const Color(0xFF2563EB),
         title: Row(
           children: [
             CircleAvatar(
-              backgroundColor: const Color(0xFF2563EB),
-              child: Text(
-                widget.friendAvatar,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+              backgroundImage: widget.friendAvatar != null && widget.friendAvatar!.isNotEmpty
+                  ? NetworkImage(widget.friendAvatar!)
+                  : null,
+              child: widget.friendAvatar == null || widget.friendAvatar!.isEmpty
+                  ? Text(
+                      widget.friendName!.isNotEmpty ? widget.friendName![0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
-            Text(widget.friendName),
+            Text(widget.friendName!, style: const TextStyle(color: Colors.white)),
           ],
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              reverse: true,
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages.reversed.toList()[index];
-                return _buildMessage(message, isDarkMode);
-              },
-            ),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text(
+            'Tính năng chat đang được cập nhật và sẽ sớm quay trở lại.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
-          _buildInputArea(appLocalizations, isDarkMode),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessage(Map<String, dynamic> message, bool isDarkMode) {
-    final isUser = message['isUser'] as bool;
-    final type = message['type'] as MessageType;
-    final content = message['content'];
-
-    Widget messageContent;
-    switch (type) {
-      case MessageType.image:
-        messageContent = ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.file(content as File, fit: BoxFit.cover),
-        );
-        break;
-      default: // MessageType.text
-        messageContent = Text(
-          content as String,
-          style: TextStyle(
-            color: isUser
-                ? Colors.white
-                : (isDarkMode ? Colors.white : Colors.black87),
-            fontSize: 15,
-          ),
-        );
-    }
-
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(8),
-        constraints: const BoxConstraints(maxWidth: 280),
-        decoration: BoxDecoration(
-          color: isUser
-              ? const Color(0xFF2563EB)
-              : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: messageContent,
-      ),
-    );
-  }
-
-  Widget _buildInputArea(AppLocalizations appLocalizations, bool isDarkMode) {
-    final hasText = _messageController.text.isNotEmpty;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.grey[900] : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha((255 * 0.05).toInt()),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            if (!hasText)
-              IconButton(
-                icon: const Icon(Icons.photo_library), 
-                onPressed: _pickImage,
-                color: Theme.of(context).primaryColor,
-              ),
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                decoration: InputDecoration(
-                  hintText: appLocalizations.get('type_a_message'),
-                  filled: true,
-                  fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                onSubmitted: (_) => _sendMessage(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (hasText)
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: _sendMessage,
-                  icon: const Icon(Icons.send, color: Colors.white),
-                ),
-              ),
-          ],
         ),
       ),
     );
