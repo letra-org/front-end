@@ -41,7 +41,7 @@ final List<TeamMember> teamData = [
   const TeamMember(
     name: 'Thái Kiệt',
     role: 'Camera AI',
-    bio: 'Trường chịu trách nhiệm phát triển tính năng thông tin địa điểm qua camera.',
+    bio: 'Kiệt chịu trách nhiệm phát triển tính năng thông tin địa điểm qua camera.',
     assetPath: 'assets/images/team/Thai_Kiet.jpg',
   ),
   const TeamMember(

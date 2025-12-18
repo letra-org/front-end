@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:device_preview/device_preview.dart';
-import 'package:animations/animations.dart'; // Import animations package
+import 'package:animations/animations.dart';
 
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
@@ -23,9 +23,10 @@ import 'screens/app_info_screen.dart';
 import 'screens/emergency_location_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/chat_screen.dart';
-import 'screens/ai_landmark_result_screen.dart'; 
+import 'screens/ai_landmark_result_screen.dart';
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
+import 'providers/friend_request_provider.dart'; // Import new provider
 import 'constants/app_theme.dart';
 import 'l10n/app_localizations.dart';
 
@@ -44,6 +45,7 @@ void main() {
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
+          ChangeNotifierProvider(create: (_) => FriendRequestProvider()), // Add new provider
         ],
         child: const LetraApp(),
       ),
@@ -56,6 +58,9 @@ class LetraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Fetch friend requests when the app starts
+    context.read<FriendRequestProvider>().fetchPendingRequestCount();
+
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, child) {
         return MaterialApp(
@@ -105,7 +110,6 @@ class _AppNavigatorState extends State<AppNavigator> {
   }
   
   void _handleLogout() {
-    // This should clear all user data and navigate to login
     setState(() {
       _currentScreen = 'login';
        _screenData.clear();

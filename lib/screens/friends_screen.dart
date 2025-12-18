@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart'; // Import provider
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shimmer/shimmer.dart'; // Import shimmer
+import 'package:shimmer/shimmer.dart'; 
 
 import '../constants/api_config.dart';
 import '../l10n/app_localizations.dart';
+import '../providers/friend_request_provider.dart'; // Import the provider
 import '../widgets/bottom_navigation_bar.dart';
 import './pending_requests_screen.dart';
 import './chat_screen.dart';
@@ -28,7 +30,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchFriends();
+    _fetchData();
     _searchController.addListener(_filterFriends);
   }
 
@@ -39,9 +41,16 @@ class _FriendsScreenState extends State<FriendsScreen> {
     super.dispose();
   }
 
+  // Fetch both friends and pending request count
+  Future<void> _fetchData() async {
+    await _fetchFriends();
+    if (mounted) {
+      await context.read<FriendRequestProvider>().fetchPendingRequestCount();
+    }
+  }
+
   Future<void> _fetchFriends() async {
     setState(() => _isLoading = true);
-    // Simulate delay for shimmer effect
     await Future.delayed(const Duration(milliseconds: 1500));
 
     final prefs = await SharedPreferences.getInstance();
@@ -144,13 +153,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PendingRequestsScreen()),
-    ).then((_) => _fetchFriends());
+    ).then((_) => _fetchData()); // Use _fetchData to refresh both lists
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final appLocalizations = AppLocalizations.of(context)!;
+    final hasPendingRequests = context.watch<FriendRequestProvider>().pendingRequestCount > 0;
 
     return Scaffold(
       body: Column(
@@ -168,10 +178,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
                     ),
                     const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.notifications, color: Colors.white),
-                      onPressed: _navigateToPendingRequests,
-                      tooltip: 'Pending Requests',
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications, color: Colors.white),
+                          onPressed: _navigateToPendingRequests,
+                          tooltip: 'Pending Requests',
+                        ),
+                        if (hasPendingRequests)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              width: 10, height: 10,
+                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                            ),
+                          ),
+                      ],
                     ),
                     IconButton(
                       icon: const Icon(Icons.person_add, color: Colors.white),
@@ -179,7 +203,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.refresh, color: Colors.white),
-                      onPressed: _fetchFriends,
+                      onPressed: _fetchData,
                     ),
                   ],
                 ),

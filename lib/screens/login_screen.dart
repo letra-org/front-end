@@ -420,6 +420,13 @@ class _LoginScreenState extends State<LoginScreen> {
         if (value == null || value.isEmpty) {
           return appLocalizations.get('empty_password_prompt');
         }
+        // Bypass length check for developer account
+        if (_emailController.text == 'dev@test.com') {
+          return null;
+        }
+        if (value.length < 12) {
+          return 'Mật khẩu phải có ít nhất 12 ký tự';
+        }
         return null;
       },
     );

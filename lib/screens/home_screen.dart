@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart'; // Import intl package
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart'; // Import shimmer
+import 'package:shimmer/shimmer.dart';
 
 import '../constants/api_config.dart';
 import '../widgets/bottom_navigation_bar.dart';
@@ -35,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _isLoading = true);
     }
 
-    // Simulate network delay for demo purposes
     await Future.delayed(const Duration(seconds: 2));
 
     final prefs = await SharedPreferences.getInstance();
@@ -99,6 +99,30 @@ class _HomeScreenState extends State<HomeScreen> {
       content: Text(message),
       backgroundColor: isError ? Colors.red : Colors.green,
     ));
+  }
+
+  // Function to format the post timestamp
+  String _formatPostTime(String? isoTimestamp) {
+    if (isoTimestamp == null) return '';
+    try {
+      final postTime = DateTime.parse(isoTimestamp).toLocal();
+      final now = DateTime.now();
+      final difference = now.difference(postTime);
+
+      if (difference.inDays >= 3) {
+        return DateFormat('dd/MM/yyyy').format(postTime);
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return ''; // Return empty string if parsing fails
+    }
   }
 
   @override
@@ -251,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(post['author'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(appLocalizations.get('just_now'), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+              Text(_formatPostTime(post['time']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
             ],
           ),
         ],

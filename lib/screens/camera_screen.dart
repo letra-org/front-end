@@ -29,6 +29,10 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
+    // Force AI mode on Desktop
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      _mode = CameraMode.ai;
+    }
     _initializeCamera();
   }
 
@@ -66,6 +70,9 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _toggleMode() {
+    // Disable toggle on Desktop
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) return;
+
     setState(() {
       _mode = _mode == CameraMode.normal ? CameraMode.ai : CameraMode.normal;
     });
@@ -82,11 +89,17 @@ class _CameraScreenState extends State<CameraScreen> {
       final image = await _controller!.takePicture();
 
       if (_mode == CameraMode.normal) {
-        await _saveImageNormally(image);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ảnh đã được lưu!')),
-          );
+        // Double check platform to fail safe
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+            // Should not happen, but force AI path or error
+             await _sendToAIAndNavigate(image);
+        } else {
+            await _saveImageNormally(image);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Ảnh đã được lưu!')),
+              );
+            }
         }
       } else { // AI Mode
         await _sendToAIAndNavigate(image);
@@ -124,16 +137,17 @@ class _CameraScreenState extends State<CameraScreen> {
         Uri.parse(_gradioApiUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "data": [
-            "data:image/jpeg;base64,$base64Image",
-            3 // top_k value
-          ]
+          "image_base64": base64Image,
+          "top_k": 3
         }),
       );
 
       if (response.statusCode == 200) {
-        final result = jsonDecode(response.body);
-        final markdownContent = result['data'][0] as String;
+        // UTF-8 decoding is important for Vietnamese characters
+        final responseBody = utf8.decode(response.bodyBytes);
+        final result = jsonDecode(responseBody);
+        
+        final markdownContent = result['markdown'] as String;
 
         widget.onNavigate(
           'aiLandmarkResult',
@@ -152,6 +166,9 @@ class _CameraScreenState extends State<CameraScreen> {
     if (!_isReady) {
       return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
     }
+    
+    final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -190,15 +207,24 @@ class _CameraScreenState extends State<CameraScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildModeButton(CameraMode.normal, "Chụp ảnh"),
-                      const SizedBox(width: 20),
-                      _buildModeButton(CameraMode.ai, "AI Nhận diện"),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                  // Hide Mode Switcher on Desktop
+                  if (!isDesktop) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildModeButton(CameraMode.normal, "Chụp ảnh"),
+                          const SizedBox(width: 20),
+                          _buildModeButton(CameraMode.ai, "AI Nhận diện"),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                  ] else ...[
+                       const Text(
+                        "Chế độ AI Landmark (Desktop)",
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 20),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

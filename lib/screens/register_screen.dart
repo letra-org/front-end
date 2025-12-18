@@ -51,6 +51,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final phone = _phoneController.text;
       final password = _passwordController.text;
 
+      final formattedPhone = '+84${phone.startsWith('0') ? phone.substring(1) : phone}';
+
       final url = Uri.parse(ApiConfig.create);
 
       try {
@@ -65,7 +67,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 'username': username,
                 'password': password,
                 'full_name': fullName,
-                'phone': phone,
+                'phone': formattedPhone,
               }),
             )
             .timeout(const Duration(seconds: 10));
@@ -82,11 +84,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
           widget.onBackToLogin();
         } else {
           final errorData = json.decode(utf8.decode(response.bodyBytes));
-          final String detail =
-              errorData['detail'] ?? 'Đã xảy ra lỗi không xác định.';
+          String detailMessage = 'Đã xảy ra lỗi không xác định.';
+
+          final detail = errorData['detail'];
+          if (detail != null) {
+            if (detail is String) {
+              detailMessage = detail;
+            } else if (detail is List && detail.isNotEmpty) {
+              detailMessage = detail.map((error) {
+                if (error is Map && error.containsKey('msg')) {
+                  return error['msg'].toString();
+                }
+                return error.toString();
+              }).join('\n');
+            }
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Đăng ký thất bại: $detail'),
+              content: Text('Đăng ký thất bại:\n$detailMessage', maxLines: 5),
               backgroundColor: Colors.red,
             ),
           );
@@ -116,7 +132,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -137,7 +152,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ),
-            // Body
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -147,111 +161,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Username
                         _buildLabel('Tên người dùng'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: _buildInputDecoration(
-                              hintText: 'Ví dụ: user123',
-                              icon: Icons.person_outline),
+                          decoration: _buildInputDecoration(hintText: 'Ví dụ: user123', icon: Icons.person_outline),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Vui lòng nhập tên người dùng';
-                            }
+                            if (value == null || value.isEmpty) return 'Vui lòng nhập tên người dùng';
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
-                        // Full Name
                         _buildLabel('Họ và tên'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _fullNameController,
-                          decoration: _buildInputDecoration(
-                              hintText: 'Ví dụ: Nguyễn Văn A',
-                              icon: Icons.badge_outlined),
+                          decoration: _buildInputDecoration(hintText: 'Ví dụ: Nguyễn Văn A', icon: Icons.badge_outlined),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Vui lòng nhập họ tên của bạn';
-                            }
+                            if (value == null || value.isEmpty) return 'Vui lòng nhập họ tên của bạn';
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
-                        // Email
                         _buildLabel('Email'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: _buildInputDecoration(
-                              hintText: 'email@example.com',
-                              icon: Icons.email_outlined),
+                          decoration: _buildInputDecoration(hintText: 'email@example.com', icon: Icons.email_outlined),
                           validator: (value) {
-                            if (value == null ||
-                                value.isEmpty ||
-                                !RegExp(r'^[^\@]+@[^\@]+\.[^\@]+').hasMatch(value)) {
-                              return 'Email không hợp lệ';
-                            }
+                            if (value == null || value.isEmpty) return 'Email không được để trống';
+                            final emailRegex = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+                            if (!emailRegex.hasMatch(value)) return 'Email không hợp lệ';
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
-                        // Phone
                         _buildLabel('Số điện thoại'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          decoration: _buildInputDecoration(
-                              hintText: 'Ví dụ: 0912345678',
-                              icon: Icons.phone_outlined),
+                          decoration: _buildInputDecoration(hintText: 'Ví dụ: 0912345678', icon: Icons.phone_outlined),
                           validator: (value) {
-                            if (value == null ||
-                                value.isEmpty ||
-                                !RegExp(r'^\d{10}$').hasMatch(value)) {
-                              return 'Số điện thoại không hợp lệ (gồm 10 số)';
-                            }
+                            if (value == null || value.isEmpty) return 'Số điện thoại không được để trống';
+                            final phoneRegex = RegExp(r'^0[0-9]{9}$');
+                            if (!phoneRegex.hasMatch(value)) return 'Số điện thoại không hợp lệ (gồm 10 số)';
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
-                        // Password
                         _buildLabel('Mật khẩu'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: _buildInputDecoration(
-                              hintText: 'Nhập mật khẩu của bạn',
-                              icon: Icons.lock_outline),
+                          decoration: _buildInputDecoration(hintText: 'Nhập mật khẩu của bạn', icon: Icons.lock_outline),
                           validator: (value) {
-                            if (value == null || value.length < 6) {
-                              return 'Mật khẩu phải có ít nhất 6 ký tự';
-                            }
+                            if (value == null || value.length < 12) return 'Mật khẩu phải có ít nhất 12 ký tự';
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
-                        // Confirm Password
                         _buildLabel('Xác nhận mật khẩu'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: true,
-                          decoration: _buildInputDecoration(
-                              hintText: 'Nhập lại mật khẩu',
-                              icon: Icons.lock_person_outlined),
+                          decoration: _buildInputDecoration(hintText: 'Nhập lại mật khẩu', icon: Icons.lock_person_outlined),
                           validator: (value) {
-                            if (value != _passwordController.text) {
-                              return 'Mật khẩu không khớp';
-                            }
+                            if (value != _passwordController.text) return 'Mật khẩu không khớp';
                             return null;
                           },
                         ),
                         const SizedBox(height: 40),
-                        // Register Button
                         SizedBox(
                           height: 50,
                           child: ElevatedButton(
@@ -259,36 +242,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF1E40AF),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 5,
                             ),
                             child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF1E40AF)),
-                                  )
-                                : const Text(
-                                    'Đăng ký',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E40AF)))
+                                : const Text('Đăng ký', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
                         ),
                         const SizedBox(height: 24),
-                        // Back to Login
                         Center(
                           child: TextButton(
                             onPressed: widget.onBackToLogin,
                             child: Text(
                               'Đã có tài khoản? Đăng nhập ngay',
-                              style: TextStyle(
-                                color: Colors.white.withAlpha((255*0.9).toInt()),
-                                fontSize: 15,
-                              ),
+                              style: TextStyle(color: Colors.white.withAlpha((255*0.9).toInt()), fontSize: 15),
                             ),
                           ),
                         ),
@@ -307,43 +275,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
     );
   }
 
-  InputDecoration _buildInputDecoration(
-      {required String hintText, required IconData icon}) {
+  InputDecoration _buildInputDecoration({required String hintText, required IconData icon}) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(color: Colors.white70, fontSize: 15),
+      hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
       prefixIcon: Icon(icon, color: Colors.white, size: 22),
       filled: true,
-      fillColor: Colors.white.withAlpha((255 * 0.25).toInt()),
-      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.white, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.yellow, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.yellow, width: 2),
-      ),
+      fillColor: Colors.white.withOpacity(0.2),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white, width: 1.5)),
+      errorStyle: const TextStyle(color: Color(0xFFFFD600), fontWeight: FontWeight.bold),
     );
   }
 }

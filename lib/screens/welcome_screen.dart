@@ -11,8 +11,8 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ignore: unused_local_variable
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: Container(
@@ -62,7 +62,7 @@ class WelcomeScreen extends StatelessWidget {
             // 3. NỘI DUNG CHÍNH (Được căn giữa trên lớp phủ mờ)
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
                 child: Column(
                   // Căn nội dung vào giữa theo chiều dọc
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -78,21 +78,21 @@ class WelcomeScreen extends StatelessWidget {
                         // Logo
                         Image.asset(
                           'assets/images/logo.png',
-                          width: 180,
-                          height: 180,
+                          width: screenWidth * 0.45,
+                          height: screenWidth * 0.45,
                         ),
 
                         // Chữ Letra
-                        const Positioned(
+                        Positioned(
                           bottom: 5,
                           child: Text(
                             'Letra',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 40,
+                              fontSize: screenHeight * 0.05,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 1.5,
-                              shadows: [
+                              shadows: const [
                                 Shadow(
                                   blurRadius: 10.0,
                                   color: Colors.black54,
@@ -106,16 +106,16 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     // --- KẾT THÚC STACK ---
 
-                    const SizedBox(height: 32),
+                    SizedBox(height: screenHeight * 0.04),
 
                     // Slogan
-                    const Text(
+                    Text(
                       'Khám phá Việt Nam\n'
                           'Chẳng ngại gian nan',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: screenHeight * 0.025,
                         fontWeight: FontWeight.w400,
                         fontStyle: FontStyle.italic,
                       ),
@@ -127,7 +127,7 @@ class WelcomeScreen extends StatelessWidget {
                     // NÚT ĐĂNG NHẬP
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: screenHeight * 0.07,
                       child: ElevatedButton(
                         onPressed: onLogin,
                         style: ElevatedButton.styleFrom(
@@ -135,20 +135,20 @@ class WelcomeScreen extends StatelessWidget {
                           foregroundColor: const Color(0xFF2563EB),
                           elevation: 10,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(screenHeight * 0.02),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Đăng nhập',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: screenHeight * 0.022,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32), // Padding dưới cùng
+                    SizedBox(height: screenHeight * 0.04), // Padding dưới cùng
                   ],
                 ),
               ),
