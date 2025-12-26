@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: appLocalizations.get('search_posts_hint'),
+                    hintText: appLocalizations.get('Tìm kiếm'),
                     prefixIcon: const Icon(Icons.search, size: 20),
                     border: InputBorder.none,
                     contentPadding:
