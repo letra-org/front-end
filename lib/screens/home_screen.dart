@@ -24,6 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _avatarUrl;
   List<Map<String, dynamic>> _posts = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -59,29 +61,56 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final List<dynamic> postsData = json.decode(utf8.decode(response.bodyBytes));
-        setState(() {
-          final newPosts = postsData.map((post) {
-            final user = post['user'] as Map<String, dynamic>?;
-            return {
-              'id': post['id'].toString(),
-              'author': user?['full_name'] ?? 'Unknown User',
-              'avatarUrl': user?['avatar_url'],
-              'time': post['created_at'], 
-              'content': post['content'],
-              'imageUrl': post['media_url'],
-              'likes': post['likes_count'] ?? 0,
-              'comments': post['comments_count'] ?? 0,
-            };
-          }).toList();
+        final List<dynamic> postsData =
+            json.decode(utf8.decode(response.bodyBytes));
 
-          if (loadMore) {
-            _posts.addAll(newPosts);
-          } else {
-            _posts = newPosts;
+        // Fetch user details for each post
+        final List<Map<String, dynamic>> newPosts = [];
+        for (var post in postsData) {
+          final userId = post['user_id'];
+          String authorName = 'Unknown User';
+          String? avatarUrl;
+
+          if (userId != null) {
+            try {
+              final userResponse = await http.get(
+                Uri.parse(ApiConfig.getUserById(userId)),
+                headers: {'Authorization': 'Bearer $token'},
+              );
+
+              if (userResponse.statusCode == 200) {
+                final userData =
+                    json.decode(utf8.decode(userResponse.bodyBytes));
+                authorName = userData['username'] ?? 'Unknown User';
+                avatarUrl = userData['avatar_url'];
+              }
+            } catch (e) {
+              print('Error fetching user $userId: $e');
+            }
           }
-          _isLoading = false;
-        });
+
+          newPosts.add({
+            'id': post['id'].toString(),
+            'author': authorName,
+            'avatarUrl': avatarUrl,
+            'time': post['created_at'],
+            'content': post['content'],
+            'imageUrl': post['media_url'],
+            'likes': post['likes_count'] ?? 0,
+            'comments': post['comments_count'] ?? 0,
+          });
+        }
+
+        if (mounted) {
+          setState(() {
+            if (loadMore) {
+              _posts.addAll(newPosts);
+            } else {
+              _posts = newPosts;
+            }
+            _isLoading = false;
+          });
+        }
       } else {
         throw Exception('Failed to load posts: ${response.statusCode}');
       }
@@ -126,8 +155,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
+    final filteredPosts = _posts.where((post) {
+      final content = post['content']?.toString().toLowerCase() ?? '';
+      return content.contains(_searchQuery.toLowerCase());
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -138,8 +177,51 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () => widget.onNavigate('userProfile'),
               child: CircleAvatar(
                 radius: 20,
-                backgroundImage: _avatarUrl != null ? CachedNetworkImageProvider(_avatarUrl!) : null,
-                child: _avatarUrl == null ? const Icon(Icons.person, size: 24) : null,
+                backgroundImage: _avatarUrl != null
+                    ? CachedNetworkImageProvider(_avatarUrl!)
+                    : null,
+                child: _avatarUrl == null
+                    ? const Icon(Icons.person, size: 24)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceVariant
+                      .withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: appLocalizations.get('search_posts_hint'),
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: InputBorder.none,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                ),
               ),
             ),
           ],
@@ -156,20 +238,30 @@ class _HomeScreenState extends State<HomeScreen> {
         onRefresh: () => _fetchPosts(),
         child: _isLoading
             ? _buildPostsLoading(context)
-            : _posts.isEmpty
-                ? Center(child: Text(appLocalizations.get('no_posts_to_show')))
+            : filteredPosts.isEmpty
+                ? Center(
+                    child: Text(_searchQuery.isNotEmpty
+                        ? 'No posts found'
+                        : appLocalizations.get('no_posts_to_show')))
                 : ListView.builder(
-                    itemCount: _posts.length + 1,
+                    itemCount: filteredPosts.length + 1,
                     itemBuilder: (context, index) {
-                      if (index == _posts.length) {
-                        return _buildLoadMoreButton(appLocalizations);
+                      if (index == filteredPosts.length) {
+                        // Only show load more if not searching, or handle pagination with search (complex)
+                        // For now, hide load more if searching to avoid confusion or just keep it.
+                        // If searching local list, load more adds to list and might match.
+                        return _searchQuery.isEmpty
+                            ? _buildLoadMoreButton(appLocalizations)
+                            : const SizedBox(height: 50);
                       }
-                      final post = _posts[index];
+                      final post = filteredPosts[index];
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => PostDetailScreen(post: post)),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    PostDetailScreen(post: post)),
                           );
                         },
                         child: _buildPostCard(post, appLocalizations),
@@ -221,7 +313,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             Container(width: double.infinity, height: 14, color: Colors.white),
             const SizedBox(height: 6),
-            Container(width: MediaQuery.of(context).size.width * 0.6, height: 14, color: Colors.white),
+            Container(
+                width: MediaQuery.of(context).size.width * 0.6,
+                height: 14,
+                color: Colors.white),
             const SizedBox(height: 12),
             Container(width: double.infinity, height: 200, color: Colors.white),
           ],
@@ -230,7 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPostCard(Map<String, dynamic> post, AppLocalizations appLocalizations) {
+  Widget _buildPostCard(
+      Map<String, dynamic> post, AppLocalizations appLocalizations) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       clipBehavior: Clip.antiAlias,
@@ -239,7 +335,8 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _buildPostHeader(post, appLocalizations),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
               post['content'] ?? '',
               maxLines: 4,
@@ -249,10 +346,11 @@ class _HomeScreenState extends State<HomeScreen> {
           if (post['imageUrl'] != null)
             CachedNetworkImage(
               imageUrl: post['imageUrl'],
-              placeholder: (context, url) => Container(height: 200, color: Colors.grey[200]),
+              placeholder: (context, url) =>
+                  Container(height: 200, color: Colors.grey[200]),
               errorWidget: (context, url, error) => const Icon(Icons.error),
               width: double.infinity,
-              height: 200, 
+              height: 200,
               fit: BoxFit.cover,
             ),
           _buildPostActions(post, appLocalizations),
@@ -261,21 +359,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPostHeader(Map<String, dynamic> post, AppLocalizations appLocalizations) {
+  Widget _buildPostHeader(
+      Map<String, dynamic> post, AppLocalizations appLocalizations) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundImage: post['avatarUrl'] != null ? CachedNetworkImageProvider(post['avatarUrl']) : null,
+            backgroundImage: post['avatarUrl'] != null
+                ? CachedNetworkImageProvider(post['avatarUrl'])
+                : null,
             child: post['avatarUrl'] == null ? const Icon(Icons.person) : null,
           ),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(post['author'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(_formatPostTime(post['time']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+              Text(post['author'] ?? 'User',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(_formatPostTime(post['time']),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12)),
             ],
           ),
         ],
@@ -283,21 +386,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPostActions(Map<String, dynamic> post, AppLocalizations appLocalizations) {
+  Widget _buildPostActions(
+      Map<String, dynamic> post, AppLocalizations appLocalizations) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          _buildActionButton(Icons.thumb_up_outlined, '${post['likes']}', () {}),
-          _buildActionButton(Icons.comment_outlined, '${post['comments']}', () {}),
-          _buildActionButton(Icons.share_outlined, appLocalizations.get('share'), () {}),
+          _buildActionButton(
+              Icons.thumb_up_outlined, '${post['likes']}', () {}),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onPressed) {
+  Widget _buildActionButton(
+      IconData icon, String label, VoidCallback onPressed) {
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 20, color: Colors.grey[700]),

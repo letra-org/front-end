@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'https://qfs40xd9-8000.asse.devtunnels.ms';
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
   // Auth
   static const String login = '$baseUrl/auth/login';
@@ -11,6 +11,8 @@ class ApiConfig {
   // Users
   static const String registerUser = '$baseUrl/users/';
   static const String currentUser = '$baseUrl/users/me';
+  static String getUserById(int userId) => '$baseUrl/users/$userId';
+  static const String searchUsers = '$baseUrl/users/search';
   static const String updateUserAvatar = '$baseUrl/users/me/avatar';
   static const String create = '$baseUrl/users/create';
 
@@ -31,9 +33,13 @@ class ApiConfig {
   static String recommendChat(String threadId) => '$baseUrl/recommend/$threadId';
   static String recommendDelete(String threadId) => '$baseUrl/recommend/$threadId';
   static String recommendFeedback(String threadId) => '$baseUrl/recommend/$threadId/feedback';
-  static String recommendHistory(String threadId) => '$baseUrl/recommend/$threadId/history';
+  static String recommendHistory(String threadId) => '$baseUrl/recommend/$threadId';
+
+  // Landmark Detection
+  static const String landmarkDetect = '$baseUrl/landmark/detect';
+  static const String landmarkDetectUpload = '$baseUrl/landmark/detect/upload';
 
   // Friend Chat (Placeholders)
   static String getMessageHistory(String friendId) => '$baseUrl/messages/$friendId';
-  static const String friendChatWebSocket = 'ws://localhost:8000/ws/chat'; // Placeholder URL
+  static const String friendChatWebSocket = 'ws://127.0.0.1:8000/ws/chat'; // Placeholder URL
 }

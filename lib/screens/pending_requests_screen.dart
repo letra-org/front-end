@@ -123,7 +123,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pending Friend Requests'),
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: const Color(0xFF1E88E5),
       ),
       body: RefreshIndicator(
         onRefresh: _fetchPendingRequests,
@@ -149,7 +149,7 @@ class _PendingRequestsScreenState extends State<PendingRequestsScreen> {
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF2563EB),
+                            backgroundColor: const Color(0xFF1E88E5),
                             backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
                             child: (avatarUrl == null || avatarUrl.isEmpty)
                                 ? Text(

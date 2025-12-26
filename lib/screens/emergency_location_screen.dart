@@ -203,7 +203,7 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.phone, color: Color(0xFF2563EB)),
+                            const Icon(Icons.phone, color: Color(0xFF1E88E5)),
                             const SizedBox(width: 8),
                             Text(
                               appLocalizations.get('emergency_contacts_label'),
@@ -257,7 +257,7 @@ class _EmergencyLocationScreenState extends State<EmergencyLocationScreen> {
                                     Text(
                                       contact['number']!,
                                       style: const TextStyle(
-                                        color: Color(0xFF2563EB),
+                                        color: Color(0xFF1E88E5),
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),

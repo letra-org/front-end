@@ -1,18 +1,21 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/api_config.dart';
 
 class ChatScreen extends StatefulWidget {
-  // Made all parameters optional to avoid compile errors from main.dart
   final String? friendId;
   final String? friendName;
   final String? friendAvatar;
-  final Function(String, {Map<String, dynamic> data})? onNavigate;
 
   const ChatScreen({
     super.key,
     this.friendId,
     this.friendName,
     this.friendAvatar,
-    this.onNavigate, // This will satisfy the incorrect call from main.dart
   });
 
   @override
@@ -20,33 +23,85 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final List<Map<String, dynamic>> _messages = [];
+  WebSocketChannel? _channel;
+  String? _myId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeChat();
+  }
+
+  Future<void> _initializeChat() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        _myId = data['user']['id']?.toString();
+      }
+    } catch (e) {
+      print("Error reading user ID: $e");
+    }
+
+    if (token != null && _myId != null) {
+      final uri = Uri.parse('${ApiConfig.friendChatWebSocket}?token=$token');
+      _channel = WebSocketChannel.connect(uri);
+
+      _channel!.stream.listen((message) {
+        if (mounted) {
+          final data = json.decode(message);
+          setState(() {
+            _messages.insert(0, data);
+          });
+        }
+      });
+    }
+  }
+
+  void _sendMessage() {
+    if (_controller.text.isNotEmpty && widget.friendId != null) {
+      final message = {
+        'recipient_id': int.tryParse(widget.friendId!) ?? 0,
+        'content': _controller.text,
+      };
+      _channel!.sink.add(json.encode(message));
+      if (mounted) {
+        setState(() {
+          _messages.insert(0, {
+            'content': _controller.text,
+            'sender_id': _myId,
+          });
+        });
+      }
+      _controller.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _channel?.sink.close();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // If the screen is opened incorrectly (e.g., from main.dart), show a message.
     if (widget.friendId == null || widget.friendName == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Lỗi', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF2563EB),
-          iconTheme: const IconThemeData(color: Colors.white),
-        ),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'Màn hình này không thể được mở trực tiếp.\nVui lòng vào danh sách bạn bè và chọn một người để trò chuyện.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          ),
-        ),
+        appBar: AppBar(title: const Text('Error')),
+        body: const Center(child: Text('Friend not specified.')),
       );
     }
 
-    // If opened correctly, show the chat UI.
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: const Color(0xFF1E88E5),
         title: Row(
           children: [
             CircleAvatar(
@@ -66,15 +121,53 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Tính năng chat đang được cập nhật và sẽ sớm quay trở lại.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              reverse: true,
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                final isMe = message['sender_id']?.toString() == _myId;
+                return Align(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: isMe ? Colors.blue : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Text(
+                      message['content'] ?? '',
+                      style: TextStyle(color: isMe ? Colors.white : Colors.black),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      hintText: 'Enter a message',
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

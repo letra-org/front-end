@@ -24,8 +24,8 @@ class WelcomeScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF3B82F6),
-              Color(0xFF1D4ED8),
+              Color(0xFF1E88E5),
+              Color(0xFF1E88E5),
             ],
           ),
           image: DecorationImage(
@@ -132,7 +132,7 @@ class WelcomeScreen extends StatelessWidget {
                         onPressed: onLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF2563EB),
+                          foregroundColor: const Color(0xFF1E88E5),
                           elevation: 10,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(screenHeight * 0.02),

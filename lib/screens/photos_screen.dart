@@ -3,10 +3,15 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:async/async.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:gal/gal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/api_config.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import '../l10n/app_localizations.dart';
 import 'camera_screen.dart';
@@ -178,46 +183,102 @@ class PhotoViewScreen extends StatefulWidget {
 
 class _PhotoViewScreenState extends State<PhotoViewScreen> {
   bool _isProcessing = false;
-  final String _gradioApiUrl = 'http://127.0.0.1:7860/api/gradio_predict';
 
-  Future<void> _sendToAIAndNavigate() async {
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
+  Future<void> _updateLandmark() async {
     if (_isProcessing) return;
     setState(() { _isProcessing = true; });
 
-    try {
-      final bytes = await widget.photo.readAsBytes();
-      String base64Image = base64Encode(bytes);
-
-      final response = await http.post(
-        Uri.parse(_gradioApiUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "data": [
-            "data:image/jpeg;base64,$base64Image",
-            3 // top_k value
-          ]
-        }),
-      );
-
+    final token = await _getToken();
+    if (token == null) {
       if (mounted) {
-          if (response.statusCode == 200) {
-          final result = jsonDecode(response.body);
-          final markdownContent = result['data'][0] as String;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+        );
+        setState(() { _isProcessing = false; });
+      }
+      return;
+    }
 
-          widget.onNavigate(
-            'aiLandmarkResult',
-            data: {'markdownContent': markdownContent},
-          );
-        } else {
-          throw Exception('Lỗi từ máy chủ AI: ${response.statusCode}\n${response.body}');
-        }
+    try {
+      var stream = http.ByteStream(DelegatingStream.typed(widget.photo.openRead()));
+      var length = await widget.photo.length();
+
+      var uri = Uri.parse(ApiConfig.landmarkDetectUpload);
+
+      var request = http.MultipartRequest("POST", uri);
+      var multipartFile = http.MultipartFile('file', stream, length,
+          filename: p.basename(widget.photo.path),
+          contentType: MediaType('image', 'jpeg'));
+
+      request.files.add(multipartFile);
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+      });
+
+      var response = await request.send();
+
+      if (!mounted) return;
+
+      final responseBody = await response.stream.bytesToString();
+      final result = jsonDecode(responseBody);
+
+      if (response.statusCode == 200 && result['success'] == true && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
+        
+        final name = data['Tên'] ?? 'N/A';
+        final engName = data['Tên tiếng Anh'] != null ? ' (${data['Tên tiếng Anh']})' : '';
+        final intro = data['Giới thiệu'] ?? 'Không có thông tin.';
+        final similarity = (data['Điểm similarity'] as num?)?.toDouble() ?? 0.0;
+        final highlights = data['Điểm đặc sắc'] as List<dynamic>? ?? [];
+        final funFacts = data['Sự thật thú vị'] as List<dynamic>? ?? [];
+        final story = data['Câu chuyện'] ?? '';
+        final wikiUrl = data['Wikipedia'] ?? '';
+
+        final highlightsString = highlights.map((e) => '- $e').join('\n');
+        final funFactsString = funFacts.map((e) => '- $e').join('\n');
+
+        final String resultString = '''
+### $name$engName
+
+**Độ tương đồng:** ${(similarity * 100).toStringAsFixed(1)}%
+
+---
+
+**Giới thiệu:**
+$intro
+
+**Điểm đặc sắc:**
+$highlightsString
+
+**Sự thật thú vị:**
+$funFactsString
+
+**Câu chuyện:**
+>$story
+
+**Tìm hiểu thêm:**
+[$wikiUrl]($wikiUrl)
+''';
+
+        widget.onNavigate(
+          'aiLandmarkResult',
+          data: {'markdownContent': resultString, 'from': 'photos'},
+        );
+      } else {
+        final String errorMessage = result['detail'] ?? 'Không nhận diện được địa danh từ ảnh. (${response.statusCode})';
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi: $e')),
-          );
-        }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e')),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() { _isProcessing = false; });
@@ -235,8 +296,8 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.auto_awesome), // AI Icon
-            onPressed: _sendToAIAndNavigate,
-            tooltip: 'Nhận diện AI',
+            onPressed: _updateLandmark,
+            tooltip: 'Cập nhật Landmark',
           ),
           if (isMobile)
             IconButton(
@@ -244,13 +305,17 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
               onPressed: () async {
                 try {
                   await Gal.putImage(widget.photo.path);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(appLocalizations.get('save_success'))),
-                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(appLocalizations.get('save_success'))),
+                    );
+                  }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${appLocalizations.get('save_general_error')}$e')),
-                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('${appLocalizations.get('save_general_error')}$e')),
+                    );
+                  }
                 }
               },
             ),
@@ -259,7 +324,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
               onPressed: () async {
                 final confirmDelete = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AlertDialog(
+                  builder: (BuildContext context) => AlertDialog(
                     title: const Text('Xác nhận xóa'),
                     content: const Text('Bạn có chắc chắn muốn xóa ảnh này?'),
                     actions: [
@@ -277,7 +342,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
 
                 if (confirmDelete == true) {
                   await widget.onDelete(widget.photo);
-                  Navigator.of(context).pop();
+                  if (mounted) Navigator.of(context).pop();
                 }
               },
             ),
@@ -302,7 +367,7 @@ class _PhotoViewScreenState extends State<PhotoViewScreen> {
                     SizedBox(height: 16),
                     Text("AI đang nhận diện...", style: TextStyle(color: Colors.white, fontSize: 18)),
                   ],
-                ),
+                ), 
               ),
             ),
         ],

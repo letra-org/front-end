@@ -197,7 +197,7 @@ class ConfirmationScreen extends StatelessWidget {
                     icon: const Icon(Icons.check_circle),
                     label: const Text('Đồng ý'),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
+                        backgroundColor: const Color(0xFF1E88E5),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

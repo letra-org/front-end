@@ -23,7 +23,7 @@ class _AIScreenState extends State<AIScreen> {
   List<Map<String, dynamic>> _threads = [];
   bool _isLoadingThreads = true;
   final TextEditingController _messageController = TextEditingController();
-  List<Map<String, dynamic>> _messages = [];
+  final List<Map<String, dynamic>> _messages = [];
   bool _isSendingMessage = false;
 
   @override
@@ -40,7 +40,10 @@ class _AIScreenState extends State<AIScreen> {
 
     final token = await _getToken();
     if (token == null) {
-      _showError('Authentication error');
+      if (mounted) {
+        final appLocalizations = AppLocalizations.of(context)!;
+        _showError(appLocalizations.get('auth_error'));
+      }
       setState(() => _isLoadingThreads = false);
       return;
     }
@@ -48,7 +51,7 @@ class _AIScreenState extends State<AIScreen> {
     try {
       final response = await http.get(
         Uri.parse(ApiConfig.recommendThreads),
-        headers: {'Authorization': 'Bearer $token'},
+        headers: {'Authorization': 'Bearer $token', 'Cache-Control': 'no-cache'},
       );
       if (!mounted) return;
       if (response.statusCode == 200) {
@@ -72,7 +75,10 @@ class _AIScreenState extends State<AIScreen> {
     setState(() => _isLoadingThreads = true);
     final token = await _getToken();
     if (token == null) {
-      _showError('Authentication error');
+      if (mounted) {
+        final appLocalizations = AppLocalizations.of(context)!;
+        _showError(appLocalizations.get('auth_error'));
+      }
       setState(() => _isLoadingThreads = false);
       return;
     }
@@ -97,9 +103,10 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Future<void> _deleteThread(String threadId) async {
+    final appLocalizations = AppLocalizations.of(context)!;
     final token = await _getToken();
     if (token == null) {
-      _showError('Authentication error');
+      _showError(appLocalizations.get('auth_error'));
       return;
     }
     try {
@@ -109,8 +116,10 @@ class _AIScreenState extends State<AIScreen> {
       );
       if (!mounted) return;
       if (response.statusCode == 200) {
-        _showSnackbar('Conversation deleted successfully');
-        _fetchThreads();
+        _showSnackbar(appLocalizations.get('ai_delete_success'));
+        setState(() {
+          _threads.removeWhere((thread) => thread['id'] == threadId);
+        });
       } else {
         final errorData = json.decode(utf8.decode(response.bodyBytes));
         throw Exception('Failed to delete thread: ${errorData['detail'] ?? response.statusCode}');
@@ -131,29 +140,80 @@ class _AIScreenState extends State<AIScreen> {
 
   Future<void> _fetchChatHistory(String threadId) async {
     setState(() => _isSendingMessage = true);
-    final appLocalizations = AppLocalizations.of(context)!;
+    final token = await _getToken();
+    if (token == null) {
+      if (mounted) {
+        _showError(AppLocalizations.of(context)!.get('auth_error'));
+      }
+      setState(() => _isSendingMessage = false);
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.recommendHistory(threadId)),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (mounted && response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        final List<dynamic> historyMessages = data['messages'] ?? [];
+        final List<Map<String, dynamic>> formattedMessages = historyMessages.map((msg) {
+          final bool isUser = msg['role'] == 'user';
+          final messageType = msg['type'] ?? 'text';
+          var content = msg['content'];
+
+          if (messageType == 'recommendation') {
+            try {
+              if (content is String) content = json.decode(content);
+              return {'isUser': isUser, 'type': 'recommendation', 'data': content};
+            } catch (e) {
+              return {'isUser': isUser, 'type': 'text', 'text': '(Invalid recommendation format)'};
+            }
+          } else {
+            return {'isUser': isUser, 'type': 'text', 'text': content.toString()};
+          }
+        }).toList();
+
+        setState(() {
+          _messages.clear();
+          _messages.addAll(formattedMessages.reversed);
+        });
+      } else if (mounted) {
+        throw Exception('Failed to load chat history: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (mounted) _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isSendingMessage = false);
+    }
+  }
+
+  void _addTextMessage(String text, {bool isUser = false}) {
     setState(() {
-      _messages.add({
-        'text': appLocalizations.get('ai_welcome_message'),
-        'isUser': false,
+      _messages.insert(0, {
+        'text': text,
+        'isUser': isUser,
+        'type': 'text',
       });
-      _isSendingMessage = false;
     });
   }
 
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty || _selectedThreadId == null) return;
+    
     final userMessage = _messageController.text.trim();
     _messageController.clear();
-    setState(() {
-      _messages.add({'text': userMessage, 'isUser': true});
-      _isSendingMessage = true;
-    });
+    
+    _addTextMessage(userMessage, isUser: true);
+    setState(() => _isSendingMessage = true);
+
     final token = await _getToken();
     if (token == null) {
-      _showError('Authentication error');
+      _showError(AppLocalizations.of(context)!.get('auth_error'));
+      setState(() => _isSendingMessage = false);
       return;
     }
+
     try {
       final response = await http.post(
         Uri.parse(ApiConfig.recommendChat(_selectedThreadId!)),
@@ -166,50 +226,42 @@ class _AIScreenState extends State<AIScreen> {
           'guardrail_enabled': false,
         }),
       );
+
       if (!mounted) return;
+
       if (response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
-        setState(() {
-          _messages.add({
-            'text': data['content']?.toString() ?? '(No response)',
-            'isUser': false,
-            'type': data['type']?.toString(),
+        final messageType = data['type']?.toString();
+
+        if (messageType == 'recommendation' && data['content'] != null) {
+          var content = data['content'];
+          if (content is String) {
+            try {
+              content = json.decode(content);
+            } catch (e) {
+              _addTextMessage(content);
+              return;
+            }
+          }
+          setState(() {
+            _messages.insert(0, {
+              'isUser': false,
+              'type': 'recommendation',
+              'data': content,
+            });
           });
-        });
+        } else {
+          _addTextMessage(data['content']?.toString() ?? '(No response)');
+        }
       } else {
-        _showError('Server error: ${response.statusCode}');
+        final errorData = json.decode(utf8.decode(response.bodyBytes));
+        final errorMessage = errorData['detail'] ?? '${AppLocalizations.of(context)!.get('server_error')}: ${response.statusCode}';
+        _showError(errorMessage);
       }
     } catch (e) {
-      if (mounted) _showError('Error: $e');
+      if (mounted) _showError('${AppLocalizations.of(context)!.get('generic_error')}: $e');
     } finally {
       if (mounted) setState(() => _isSendingMessage = false);
-    }
-  }
-
-  Future<void> _sendFeedback(int score, {String? comment}) async {
-    if (_selectedThreadId == null) return;
-
-    final token = await _getToken();
-    if (token == null) {
-      _showError('Authentication error');
-      return;
-    }
-
-    try {
-      await http.post(
-        Uri.parse(ApiConfig.recommendFeedback(_selectedThreadId!)),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'score': score,
-          'comment': comment,
-        }),
-      );
-      _showSnackbar('Thank you for your feedback!');
-    } catch (e) {
-      _showError('Failed to send feedback: $e');
     }
   }
 
@@ -236,6 +288,7 @@ class _AIScreenState extends State<AIScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appLocalizations = AppLocalizations.of(context)!;
     return PopScope(
       canPop: !_isListView,
       onPopInvoked: (didPop) {
@@ -245,7 +298,6 @@ class _AIScreenState extends State<AIScreen> {
             _isListView = true;
             _selectedThreadId = null;
           });
-          _fetchThreads();
         } else {
           widget.onNavigate('home');
         }
@@ -259,17 +311,17 @@ class _AIScreenState extends State<AIScreen> {
                 _isListView = true;
                 _selectedThreadId = null;
               });
-              _fetchThreads();
             },
           ),
-          title: Text(_isListView ? 'AI Conversations' : 'Chat', style: const TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF2563EB),
+          title: Text(_isListView ? appLocalizations.get('ai_assistant_title') : appLocalizations.get('chat_title'), style: const TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF1E88E5),
           actions: _isListView ? [IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _fetchThreads)] : [],
         ),
         body: _isListView ? _buildThreadsList() : _buildChatView(),
         floatingActionButton: _isListView ? FloatingActionButton(
           onPressed: _createNewThreadAndChat,
-          child: const Icon(Icons.add),
+          backgroundColor: const Color(0xFF1E88E5),
+          child: const Icon(Icons.add, color: Colors.white),
         ) : null,
         bottomNavigationBar: _isListView ? BottomNavigationBarWidget(
           currentScreen: 'ai',
@@ -280,19 +332,20 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Widget _buildThreadsList() {
+    final appLocalizations = AppLocalizations.of(context)!;
     if (_isLoadingThreads) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_threads.isEmpty) {
-      return const Center(child: Text('No conversations yet. Start a new one!'));
+      return Center(child: Text(appLocalizations.get('ai_no_conversations')));
     }
     return ListView.builder(
       itemCount: _threads.length,
       itemBuilder: (context, index) {
         final thread = _threads[index];
         return ListTile(
-          title: Text(thread['title'] ?? 'Conversation #${index + 1}'),
-          subtitle: Text('${thread['message_count'] ?? 0} messages'),
+          title: Text(thread['title'] ?? '${appLocalizations.get('ai_conversation')} #${index + 1}'),
+          subtitle: Text('${thread['message_count'] ?? 0} ${appLocalizations.get('ai_messages')}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             onPressed: () => _confirmDelete(thread['id']),
@@ -304,14 +357,15 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Future<void> _confirmDelete(String threadId) async {
+    final appLocalizations = AppLocalizations.of(context)!;
     final bool? confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Conversation'),
-        content: const Text('Are you sure you want to permanently delete this conversation?'),
+        title: Text(appLocalizations.get('ai_delete_conversation_title')),
+        content: Text(appLocalizations.get('ai_delete_conversation_content')),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(appLocalizations.get('cancel'))),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(appLocalizations.get('delete'), style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -326,6 +380,7 @@ class _AIScreenState extends State<AIScreen> {
       children: [
         Expanded(
           child: ListView.builder(
+            reverse: true,
             padding: const EdgeInsets.all(12),
             itemCount: _messages.length,
             itemBuilder: (context, index) {
@@ -342,88 +397,149 @@ class _AIScreenState extends State<AIScreen> {
 
   Widget _buildMessageItem(Map<String, dynamic> message, bool isDarkMode) {
     final isUser = message['isUser'] as bool;
-    final isLastAiMessage = !isUser && _messages.last == message;
+    
+    if (message['type'] == 'recommendation') {
+      return _buildRecommendationWidget(message['data']);
+    }
 
-    return Column(
-      crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isUser ? const Color(0xFF2563EB) : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              message['text']?.toString() ?? '',
-              style: TextStyle(color: isUser ? Colors.white : (isDarkMode ? Colors.white : Colors.black87)),
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isUser ? const Color(0xFF1E88E5) : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          message['text']?.toString() ?? '',
+          style: TextStyle(color: isUser ? Colors.white : (isDarkMode ? Colors.white : Colors.black87)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendationWidget(Map<String, dynamic> recommendationData) {
+    final List<dynamic> destinations = recommendationData['destinations'] ?? [];
+    final summary = recommendationData['profile']?['summary'] ?? 'Dựa trên lựa chọn của bạn, đây là một vài gợi ý:';
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Text(summary, style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic)),
+          ),
+          Container(
+            height: 350,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: destinations.length,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemBuilder: (context, index) {
+                return _buildDestinationCard(destinations[index]);
+              },
             ),
           ),
-        ),
-        if (isLastAiMessage)
-          _buildFeedbackButtons(),
-      ],
-    );
-  }
-
-  Widget _buildFeedbackButtons() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
-      child: Row(
-        children: [
-          IconButton(icon: const Icon(Icons.thumb_up_outlined, size: 20), onPressed: () => _sendFeedback(1)),
-          IconButton(icon: const Icon(Icons.thumb_down_outlined, size: 20), onPressed: () => _showFeedbackDialog()),
         ],
       ),
     );
   }
 
-  Future<void> _showFeedbackDialog() async {
-    final TextEditingController commentController = TextEditingController();
-    final bool? send = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Provide Feedback'),
-        content: TextField(
-          controller: commentController,
-          decoration: const InputDecoration(hintText: 'Tell us more...'),
-          maxLines: 3,
+  Widget _buildDestinationCard(Map<String, dynamic> destination) {
+    return SizedBox(
+      width: 250,
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        clipBehavior: Clip.antiAlias,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 100,
+              width: double.infinity,
+              color: Colors.blue.shade100,
+              child: Center(child: Icon(Icons.map, size: 40, color: Colors.blue.shade800)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    destination['name'] ?? 'Unknown Destination',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        destination['location'] ?? '',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  Text(
+                    destination['description'] ?? 'No description available.',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Lý do phù hợp:',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    destination['match_reason'] ?? '',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Send')),
-        ],
       ),
     );
-    if (send == true) {
-      _sendFeedback(-1, comment: commentController.text);
-    }
   }
 
   Widget _buildInputArea(bool isDarkMode) {
+    final appLocalizations = AppLocalizations.of(context)!;
     return Container(
       color: Theme.of(context).cardColor,
       padding: const EdgeInsets.all(12),
       child: SafeArea(
+        top: false,
         child: Row(
           children: [
             Expanded(
               child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: 'Type your message...',
+                  hintText: appLocalizations.get('type_your_message_hint'),
                   filled: true,
                   fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 onSubmitted: (_) => _sendMessage(),
               ),
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.send, color: Color(0xFF2563EB)),
+              icon: const Icon(Icons.send, color: Color(0xFF1E88E5)),
               onPressed: _sendMessage,
             ),
           ],

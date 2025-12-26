@@ -5,7 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
-import 'single_purpose_camera_screen.dart'; // Import the new camera screen
+import 'single_purpose_camera_screen.dart';
+import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../constants/api_config.dart';
 
@@ -23,42 +24,34 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic> _userInfo = {};
+  List<Map<String, dynamic>> _userPosts = [];
   bool _isLoading = true;
-
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
+  bool _didRunInitialSetup = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeUserData();
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didRunInitialSetup) {
+      _didRunInitialSetup = true;
+      _loadInitialData();
+    }
   }
 
-  void _initializeUserData() {
-    final appLocalizations = AppLocalizations.of(context)!;
+  Future<void> _loadInitialData() async {
     setState(() {
-      _userInfo = {
-        'full_name': appLocalizations.get('loading'),
-        'email': appLocalizations.get('loading'),
-        'phone': appLocalizations.get('loading'),
-        'username': appLocalizations.get('loading'),
-        'avatar_url': null,
-      };
+      _isLoading = true;
     });
-    _loadDataFromDevice();
-  }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _usernameController.dispose();
-    super.dispose();
+    try {
+      await _loadDataFromDevice();
+      await _fetchUserPosts();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<String?> _getAuthToken() async {
@@ -80,7 +73,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (!mounted) return;
     final appLocalizations = AppLocalizations.of(context)!;
 
-    setState(() { _isLoading = true; });
     try {
       final directory = await getApplicationDocumentsDirectory();
       final dataPath = '${directory.path}/data/userdata.js';
@@ -92,36 +84,55 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         final user = jsonData['user'] as Map<String, dynamic>?;
 
         if (user != null) {
-          setState(() {
-            _userInfo = {
-              'full_name': user['full_name'] as String? ?? appLocalizations.get('no_name'),
-              'email': user['email'] as String? ?? appLocalizations.get('no_email'),
-              'phone': user['phone'] as String? ?? appLocalizations.get('no_phone'),
-              'username': user['username'] as String? ?? appLocalizations.get('no_username'),
-              'avatar_url': user['avatar_url'],
-            };
-          });
+          _userInfo = {
+            'id': user['id'],
+            'full_name':
+                user['full_name'] as String? ?? appLocalizations.get('no_name'),
+            'email':
+                user['email'] as String? ?? appLocalizations.get('no_email'),
+            'phone':
+                user['phone'] as String? ?? appLocalizations.get('no_phone'),
+            'username': user['username'] as String? ??
+                appLocalizations.get('no_username'),
+            'avatar_url': user['avatar_url'],
+          };
         }
       }
-
-      _nameController.text = _userInfo['full_name'] ?? '';
-      _emailController.text = _userInfo['email'] ?? '';
-      _phoneController.text = _userInfo['phone'] ?? '';
-      _usernameController.text = _userInfo['username'] ?? '';
-
     } catch (e) {
       print('LỖI KHI TẢI DỮ LIỆU: $e');
-    } finally {
-      if (mounted) {
-        setState(() { _isLoading = false; });
-      }
     }
   }
-  
+
+  Future<void> _fetchUserPosts() async {
+    final userId = _userInfo['id'];
+    if (userId == null) return;
+
+    final token = await _getAuthToken();
+    if (token == null) return;
+
+    try {
+      final uri = Uri.parse(ApiConfig.getPosts)
+          .replace(queryParameters: {'user_id': userId.toString()});
+      final response = await http.get(
+        uri,
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final posts = json.decode(utf8.decode(response.bodyBytes)) as List;
+        setState(() {
+          _userPosts = List<Map<String, dynamic>>.from(posts);
+        });
+      }
+    } catch (e) {
+      print("Lỗi khi tải bài viết của người dùng: $e");
+    }
+  }
+
   Future<void> _handleAvatarChange(BuildContext context) async {
     final XFile? confirmedImage = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SinglePurposeCameraScreen()),
+      MaterialPageRoute(
+          builder: (context) => const SinglePurposeCameraScreen()),
     );
 
     if (confirmedImage != null) {
@@ -139,13 +150,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return;
     }
 
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final url = Uri.parse(ApiConfig.updateUserAvatar);
       final request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files
+          .add(await http.MultipartFile.fromPath('file', imageFile.path));
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -164,120 +178,105 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
         localData['user'] = updatedUser;
         await dataFile.writeAsString(json.encode(localData));
-        
+
         setState(() {
           _userInfo['avatar_url'] = updatedUser['avatar_url'];
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(appLocalizations.get('avatar_update_success'))),
+          SnackBar(
+              content: Text(appLocalizations.get('avatar_update_success'))),
         );
-
       } else {
-        throw Exception('${appLocalizations.get('upload_failed')}${response.statusCode}');
+        throw Exception(
+            '${appLocalizations.get('upload_failed')}${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${appLocalizations.get('generic_error')}${e.toString().replaceAll("Exception: ", "")}')),
+        SnackBar(
+            content: Text(
+                '${appLocalizations.get('generic_error')}${e.toString().replaceAll("Exception: ", "")}')),
       );
     } finally {
       if (mounted) {
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final appLocalizations = AppLocalizations.of(context)!;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _loadDataFromDevice,
-                  child: ListView(
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      _buildAvatarSection(),
-                      const SizedBox(height: 32),
-                      _buildInfoField(appLocalizations.get('username_label'), _usernameController, isDarkMode, icon: Icons.account_circle_outlined),
-                      const SizedBox(height: 16),
-                      _buildInfoField(appLocalizations.get('full_name_label'), _nameController, isDarkMode, icon: Icons.badge_outlined),
-                      const SizedBox(height: 16),
-                      _buildInfoField(appLocalizations.get('email_label'), _emailController, isDarkMode, icon: Icons.email_outlined),
-                      const SizedBox(height: 16),
-                      _buildInfoField(appLocalizations.get('phone_label'), _phoneController, isDarkMode, icon: Icons.phone_outlined),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (_isLoading)
-            Container(
-              color: Colors.black.withAlpha(128),
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    final appLocalizations = AppLocalizations.of(context)!;
-    return Container(
-      color: const Color(0xFF2563EB),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              IconButton(
+      body: RefreshIndicator(
+        onRefresh: _loadInitialData,
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              backgroundColor: const Color(0xFF1E88E5),
+              title: Text(appLocalizations.get('personal_info_title')),
+              leading: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => widget.onNavigate('settings'),
               ),
-              Text(
-                appLocalizations.get('personal_info_title'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+            ),
+            SliverToBoxAdapter(
+              child: _buildProfileHeader(appLocalizations),
+            ),
+            SliverToBoxAdapter(
+              child: _buildInfoCard(appLocalizations),
+            ),
+            _buildPostsSection(appLocalizations),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildAvatarSection() {
-    return Center(
-      child: Stack(
+  Widget _buildProfileHeader(AppLocalizations appLocalizations) {
+    return Container(
+      color: Theme.of(context).cardColor,
+      padding: const EdgeInsets.symmetric(vertical: 24.0),
+      child: Column(
         children: [
-          _buildAvatar(),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 48, 
-              height: 48,
-              decoration: const BoxDecoration(
-                color: Color(0xFF2563EB),
-                shape: BoxShape.circle,
+          Stack(
+            children: [
+              _buildAvatar(),
+              Positioned(
+                bottom: 0,
+                right: 4,
+                child: CircleAvatar(
+                  radius: 22,
+                  backgroundColor: Theme.of(context).primaryColor,
+                  child: IconButton(
+                    icon: const Icon(Icons.camera_alt,
+                        color: Colors.white, size: 24),
+                    onPressed: () => _handleAvatarChange(context),
+                    tooltip: appLocalizations.get('change_avatar_tooltip'),
+                  ),
+                ),
               ),
-              child: IconButton(
-                onPressed: () => _handleAvatarChange(context),
-                icon: const Icon(Icons.camera_alt, color: Colors.white, size: 24),
-              ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _userInfo['full_name'] ?? '',
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '@${_userInfo['username'] ?? ''}',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(color: Colors.grey),
           ),
         ],
       ),
@@ -285,59 +284,122 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildAvatar() {
-    final appLocalizations = AppLocalizations.of(context)!;
     final avatarUrl = _userInfo['avatar_url'] as String?;
-
-    if (avatarUrl != null) {
-      return ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: avatarUrl,
-          placeholder: (context, url) => const CircleAvatar(radius: 60, child: CircularProgressIndicator()),
-          errorWidget: (context, url, error) => const CircleAvatar(radius: 60, backgroundImage: AssetImage('assets/images/user/avatar.jpg')),
-          fit: BoxFit.cover,
-          width: 120,
-          height: 120,
-        ),
-      );
-    }
-
-    final fullName = _userInfo['full_name'] as String?;
-    if (fullName != null && fullName.isNotEmpty && fullName != appLocalizations.get('loading')) {
-      final initial = fullName[0].toUpperCase();
-      return CircleAvatar(
-        radius: 60,
-        backgroundColor: const Color(0xFF2563EB),
-        child: Text(initial, style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
-      );
-    }
-
-    return const CircleAvatar(
+    return CircleAvatar(
       radius: 60,
-      backgroundImage: AssetImage('assets/images/user/avatar.jpg'),
+      backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+          ? CachedNetworkImageProvider(avatarUrl)
+          : null,
+      child: (avatarUrl == null || avatarUrl.isEmpty)
+          ? const Icon(Icons.person, size: 60, color: Colors.grey)
+          : null,
     );
   }
 
-  Widget _buildInfoField(String label, TextEditingController controller, bool isDarkMode, {IconData? icon}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+  Widget _buildInfoCard(AppLocalizations appLocalizations) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Table(
+          columnWidths: const {
+            0: IntrinsicColumnWidth(),
+            1: FlexColumnWidth(),
+          },
+          children: [
+            _buildInfoTableRow(
+                Icons.email_outlined,
+                appLocalizations.get('email_label'),
+                _userInfo['email'] ?? '',
+                isDarkMode),
+            _buildInfoTableRow(
+                Icons.phone_outlined,
+                appLocalizations.get('phone_label'),
+                _userInfo['phone'] ?? '',
+                isDarkMode),
+          ],
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          readOnly: true,
-          style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
-          decoration: InputDecoration(
-            prefixIcon: icon != null ? Icon(icon) : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            filled: true,
-            fillColor: isDarkMode ? Colors.grey[850] : Colors.grey[200],
-          ),
+      ),
+    );
+  }
+
+  TableRow _buildInfoTableRow(
+      IconData icon, String label, String value, bool isDarkMode) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16.0, top: 8.0, bottom: 8.0),
+          child: Icon(icon,
+              color: isDarkMode ? Colors.grey[400] : Colors.grey[600]),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(value,
+              style: TextStyle(
+                  fontSize: 16,
+                  color: isDarkMode ? Colors.white70 : Colors.black87)),
         ),
       ],
+    );
+  }
+
+  String _formatPostTime(String? dateString) {
+    if (dateString == null) return '';
+    try {
+      final DateTime date = DateTime.parse(dateString).toLocal();
+      final DateTime now = DateTime.now();
+      final Duration difference = now.difference(date);
+
+      if (difference.inDays > 3) {
+        return DateFormat('dd/MM/yyyy').format(date);
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  Widget _buildPostsSection(AppLocalizations appLocalizations) {
+    if (_isLoading) {
+      return const SliverToBoxAdapter(
+          child: Center(
+              child: Padding(
+        padding: EdgeInsets.all(32.0),
+        child: CircularProgressIndicator(),
+      )));
+    }
+    if (_userPosts.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48.0),
+            child: Text(appLocalizations.get('no_posts_yet')),
+          ),
+        ),
+      );
+    }
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final post = _userPosts[index];
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
+              title: Text(post['content'] ?? ''),
+              subtitle: Text(_formatPostTime(post['created_at'])),
+            ),
+          );
+        },
+        childCount: _userPosts.length,
+      ),
     );
   }
 }

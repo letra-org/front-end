@@ -145,7 +145,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _handlePost,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: const Color(0xFF1E88E5),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.0)),
               ),
@@ -216,7 +216,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
         child: IconButton(
-          icon: const Icon(Icons.photo_library, color: Color(0xFF2563EB), size: 30),
+          icon: const Icon(Icons.photo_library, color: Color(0xFF1E88E5), size: 30),
           onPressed: _pickImage,
         ),
       ),

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../constants/api_config.dart';
 
 enum CameraMode { normal, ai }
 
@@ -23,8 +26,6 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _isFrontCamera = false;
   CameraMode _mode = CameraMode.normal;
   bool _isProcessing = false;
-
-  final String _gradioApiUrl = 'http://127.0.0.1:7860/api/gradio_predict';
 
   @override
   void initState() {
@@ -60,6 +61,11 @@ class _CameraScreenState extends State<CameraScreen> {
     super.dispose();
   }
 
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
   Future<void> _flipCamera() async {
     if (_cameras == null || _cameras!.length < 2) return;
     setState(() {
@@ -89,9 +95,7 @@ class _CameraScreenState extends State<CameraScreen> {
       final image = await _controller!.takePicture();
 
       if (_mode == CameraMode.normal) {
-        // Double check platform to fail safe
         if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-            // Should not happen, but force AI path or error
              await _sendToAIAndNavigate(image);
         } else {
             await _saveImageNormally(image);
@@ -131,33 +135,84 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<void> _sendToAIAndNavigate(XFile image) async {
     final bytes = await image.readAsBytes();
     String base64Image = base64Encode(bytes);
+    final token = await _getToken();
+
+    if (token == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+        );
+      }
+      return;
+    }
 
     try {
       final response = await http.post(
-        Uri.parse(_gradioApiUrl),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse(ApiConfig.landmarkDetect),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({
           "image_base64": base64Image,
-          "top_k": 3
         }),
       );
 
-      if (response.statusCode == 200) {
-        // UTF-8 decoding is important for Vietnamese characters
-        final responseBody = utf8.decode(response.bodyBytes);
-        final result = jsonDecode(responseBody);
+      if (!mounted) return;
+
+      final responseBody = utf8.decode(response.bodyBytes);
+      final result = jsonDecode(responseBody);
+
+      if (response.statusCode == 200 && result['success'] == true && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
         
-        final markdownContent = result['markdown'] as String;
+        final name = data['Tên'] ?? 'N/A';
+        final engName = data['Tên tiếng Anh'] != null ? ' (${data['Tên tiếng Anh']})' : '';
+        final intro = data['Giới thiệu'] ?? 'Không có thông tin.';
+        final similarity = (data['Điểm similarity'] as num?)?.toDouble() ?? 0.0;
+        final highlights = data['Điểm đặc sắc'] as List<dynamic>? ?? [];
+        final funFacts = data['Sự thật thú vị'] as List<dynamic>? ?? [];
+        final story = data['Câu chuyện'] ?? '';
+        final wikiUrl = data['Wikipedia'] ?? '';
+
+        final highlightsString = highlights.map((e) => '- $e').join('\n');
+        final funFactsString = funFacts.map((e) => '- $e').join('\n');
+
+        final String resultString = '''
+### $name$engName
+
+**Độ tương đồng:** ${(similarity * 100).toStringAsFixed(1)}%
+
+---
+
+**Giới thiệu:**
+$intro
+
+**Điểm đặc sắc:**
+$highlightsString
+
+**Sự thật thú vị:**
+$funFactsString
+
+**Câu chuyện:**
+>$story
+
+**Tìm hiểu thêm:**
+[$wikiUrl]($wikiUrl)
+''';
 
         widget.onNavigate(
           'aiLandmarkResult',
-          data: {'markdownContent': markdownContent},
+          data: {'markdownContent': resultString},
         );
       } else {
-        throw Exception('Lỗi từ máy chủ AI: ${response.statusCode}\n${response.body}');
+        final String errorMessage = result['detail'] ?? 'Không nhận diện được địa danh từ ảnh. (${response.statusCode})';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } catch (e) {
-      rethrow;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi kết nối tới AI: $e')),
+      );
     }
   }
 
@@ -207,7 +262,6 @@ class _CameraScreenState extends State<CameraScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Hide Mode Switcher on Desktop
                   if (!isDesktop) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -220,7 +274,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       const SizedBox(height: 20),
                   ] else ...[
                        const Text(
-                        "Chế độ AI Landmark (Desktop)",
+                        "Chế độ AI Landmark",
                         style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 20),
@@ -243,11 +297,11 @@ class _CameraScreenState extends State<CameraScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 30),
+                      const SizedBox(width: 48), // Placeholder for symmetry
                     ],
                   ),
                 ],
-              ),
+              ),  
             ),
           ),
         ],
@@ -262,9 +316,9 @@ class _CameraScreenState extends State<CameraScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
+          color: isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF2563EB) : Colors.white, width: 1),
+          border: Border.all(color: isSelected ? const Color(0xFF1E88E5) : Colors.white, width: 1),
         ),
         child: Text(
           text,

@@ -128,7 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1D4ED8),
+      backgroundColor: const Color(0xFF1E88E5),
       body: SafeArea(
         child: Column(
           children: [
@@ -241,12 +241,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onPressed: _handleSubmit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF1E40AF),
+                              foregroundColor: const Color(0xFF1E88E5),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               elevation: 5,
                             ),
                             child: _isLoading
-                                ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E40AF)))
+                                ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E88E5)))
                                 : const Text('Đăng ký', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           ),
                         ),

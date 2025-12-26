@@ -15,7 +15,7 @@ class AppInfoScreen extends StatelessWidget {
         children: [
           // Header Bar
           Container(
-            color: const Color(0xFF2563EB),
+            color: const Color(0xFF1E88E5),
             child: SafeArea(
               bottom: false,
               child: Padding(

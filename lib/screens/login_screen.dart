@@ -28,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
 
   bool _isPasswordVisible = false;
   bool _isLoading = false;
@@ -36,6 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -175,8 +179,8 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF3B82F6),
-              Color(0xFF1D4ED8),
+              Color(0xFF1E88E5),
+              Color(0xFF1E88E5),
             ],
           ),
           image: DecorationImage(
@@ -258,6 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 8),
                               _buildTextField(
                                 controller: _emailController,
+                                focusNode: _emailFocusNode,
                                 hintText: appLocalizations.get('enter_your_email'),
                                 icon: Icons.email_outlined,
                                 validator: (value) {
@@ -279,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onPressed: _handleSubmit,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF1D4ED8),
+                                    foregroundColor: const Color(0xFF1E88E5),
                                     elevation: 8,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -288,7 +293,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: _isLoading
                                       ? const CircularProgressIndicator(
                                           valueColor: AlwaysStoppedAnimation<Color>(
-                                              Color(0xFF1D4ED8)),
+                                              Color(0xFF1E88E5)),
                                         )
                                       : Text(
                                           appLocalizations.get('login_button'),
@@ -360,9 +365,11 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hintText,
     required IconData icon,
     required String? Function(String?) validator,
+    FocusNode? focusNode,
   }) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: TextInputType.emailAddress,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -388,6 +395,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final appLocalizations = AppLocalizations.of(context)!;
     return TextFormField(
       controller: _passwordController,
+      focusNode: _passwordFocusNode,
       obscureText: !_isPasswordVisible,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(

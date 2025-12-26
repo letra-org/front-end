@@ -169,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           // Header
           Container(
-            color: const Color(0xFF2563EB),
+            color: const Color(0xFF1E88E5),
             child: SafeArea(
               bottom: false,
               child: Padding(
@@ -275,7 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         trailing: Switch(
                           value: isDarkMode,
                           onChanged: (value) => themeProvider.toggleTheme(),
-                          activeTrackColor: const Color(0xFF2563EB),
+                          activeTrackColor: const Color(0xFF1E88E5),
                         ),
                       ),
                       const Divider(height: 1),

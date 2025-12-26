@@ -1,16 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart'; // Import provider
+import 'package:provider/provider.dart'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart'; 
 
 import '../constants/api_config.dart';
 import '../l10n/app_localizations.dart';
-import '../providers/friend_request_provider.dart'; // Import the provider
+import '../providers/friend_request_provider.dart'; 
 import '../widgets/bottom_navigation_bar.dart';
 import './pending_requests_screen.dart';
 import './chat_screen.dart';
+import './friend_profile_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   final Function(String, {Map<String, dynamic> data}) onNavigate;
@@ -41,7 +43,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
     super.dispose();
   }
 
-  // Fetch both friends and pending request count
   Future<void> _fetchData() async {
     await _fetchFriends();
     if (mounted) {
@@ -120,32 +121,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   void _showAddFriendDialog() {
-    final TextEditingController idController = TextEditingController();
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Add Friend'),
-          content: TextField(
-            controller: idController,
-            decoration: const InputDecoration(hintText: 'Enter a user ID'),
-            keyboardType: TextInputType.text,
-          ),
-          actions: [
-            TextButton(child: const Text('Cancel'), onPressed: () => Navigator.of(context).pop()),
-            TextButton(
-              child: const Text('Add'),
-              onPressed: () {
-                final userId = idController.text.trim();
-                if (userId.isNotEmpty) {
-                  Navigator.of(context).pop();
-                  // _sendFriendRequest(userId); // You would call your API here
-                }
-              },
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      builder: (context) => const UserSearchSheet(),
     );
   }
 
@@ -153,7 +132,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PendingRequestsScreen()),
-    ).then((_) => _fetchData()); // Use _fetchData to refresh both lists
+    ).then((_) => _fetchData());
   }
 
   @override
@@ -166,7 +145,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
       body: Column(
         children: [
           Container(
-            color: const Color(0xFF2563EB),
+            color: const Color(0xFF1E88E5),
             child: SafeArea(
               bottom: false,
               child: Padding(
@@ -239,31 +218,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           return Card(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF2563EB),
-                                backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-                                child: (avatarUrl == null || avatarUrl.isEmpty)
-                                    ? Text(
-                                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                      )
-                                    : null,
-                              ),
-                              title: Text(name),
-                              subtitle: Row(
-                                children: [
-                                  const Icon(Icons.location_on, size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(friend['location'] ?? 'Việt Nam'),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.message),
-                                onPressed: () {
+                              onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => ChatScreen(
+                                      builder: (context) => FriendProfileScreen(
                                         friendId: friendId,
                                         friendName: name,
                                         friendAvatar: avatarUrl,
@@ -271,7 +230,39 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     ),
                                   );
                                 },
-                              ),
+                                leading: CircleAvatar(
+                                  backgroundColor: const Color(0xFF1E88E5),
+                                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
+                                  child: (avatarUrl == null || avatarUrl.isEmpty)
+                                      ? Text(
+                                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                        )
+                                      : null,
+                                ),
+                                title: Text(name),
+                                subtitle: Row(
+                                  children: [
+                                    const Icon(Icons.location_on, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(friend['location'] ?? 'Việt Nam'),
+                                  ],
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.message),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatScreen(
+                                          friendId: friendId,
+                                          friendName: name,
+                                          friendAvatar: avatarUrl,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                             ),
                           );
                         },
@@ -300,6 +291,140 @@ class _FriendsScreenState extends State<FriendsScreen> {
             title: Container(width: 150, height: 16, color: Colors.white),
             subtitle: Container(width: 100, height: 12, color: Colors.white),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class UserSearchSheet extends StatefulWidget {
+  const UserSearchSheet({super.key});
+
+  @override
+  _UserSearchSheetState createState() => _UserSearchSheetState();
+}
+
+class _UserSearchSheetState extends State<UserSearchSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isLoading = false;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (_searchController.text.isNotEmpty) {
+        _searchUsers(_searchController.text);
+      }
+    });
+  }
+
+  Future<void> _searchUsers(String query) async {
+    setState(() => _isLoading = true);
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.searchUsers).replace(queryParameters: {'q': query}),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes)) as List;
+        setState(() {
+          _searchResults = List<Map<String, dynamic>>.from(data);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      _showSnackbar('Error searching users: $e', isError: true);
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendFriendRequest(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    try {
+        await http.post(
+        Uri.parse(ApiConfig.addFriend),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'target_user_id': userId}),
+      );
+      _showSnackbar('Friend request sent!');
+    } catch (e) {
+      _showSnackbar('Failed to send friend request: $e', isError: true);
+    }
+  }
+
+  void _showSnackbar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: MediaQuery.of(context).viewInsets,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _searchController,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'Search by name or username',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final user = _searchResults[index];
+                        return ListTile(
+                          title: Text(user['full_name'] ?? ''),
+                          subtitle: Text(user['username'] ?? ''),
+                          trailing: ElevatedButton(
+                            onPressed: () => _sendFriendRequest(user['id'].toString()),
+                            child: const Text('Add'),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
