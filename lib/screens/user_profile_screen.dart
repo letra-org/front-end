@@ -225,7 +225,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $token';
       request.files.add(await http.MultipartFile.fromPath(
-        'avatar',
+        'file',
         imageFile.path,
         contentType: MediaType('image', 'jpeg'),
       ));

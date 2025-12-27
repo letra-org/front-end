@@ -101,9 +101,27 @@ class AppNavigator extends StatefulWidget {
 
 class _AppNavigatorState extends State<AppNavigator> {
   String _currentScreen = 'welcome';
+  final List<String> _history = [];
   final Map<String, dynamic> _screenData = {};
 
-  void _navigateToScreen(String screen, {Map<String, dynamic>? data}) {
+  void _navigateToScreen(String screen,
+      {Map<String, dynamic>? data, bool isBack = false}) {
+    if (screen == 'home' || screen == 'welcome') {
+      _history.clear();
+    } else if (!isBack && _currentScreen != screen) {
+      // If we are navigating to a screen that is already in history,
+      // prune the history up to that point to avoid loops
+      final existingIndex = _history.indexOf(screen);
+      if (existingIndex != -1) {
+        _history.removeRange(existingIndex, _history.length);
+      } else {
+        _history.add(_currentScreen);
+      }
+
+      // Keep history reasonably sized
+      if (_history.length > 20) _history.removeAt(0);
+    }
+
     setState(() {
       _currentScreen = screen;
       if (data != null) {
@@ -113,7 +131,36 @@ class _AppNavigatorState extends State<AppNavigator> {
     });
   }
 
+  Future<void> _showExitConfirmation() async {
+    final l10n = AppLocalizations.of(context)!;
+    final bool? shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.get('exit_confirm_title')),
+        content: Text(l10n.get('exit_confirm_message')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.get('stay_button')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              l10n.get('exit_button'),
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldExit == true) {
+      SystemNavigator.pop();
+    }
+  }
+
   void _handleLogout() {
+    _history.clear();
     setState(() {
       _currentScreen = 'login';
       _screenData.clear();
@@ -208,19 +255,31 @@ class _AppNavigatorState extends State<AppNavigator> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageTransitionSwitcher(
-        duration: const Duration(milliseconds: 600),
-        transitionBuilder: (Widget child, Animation<double> primaryAnimation,
-            Animation<double> secondaryAnimation) {
-          return SharedAxisTransition(
-            animation: primaryAnimation,
-            secondaryAnimation: secondaryAnimation,
-            transitionType: SharedAxisTransitionType.horizontal,
-            child: child,
-          );
-        },
-        child: _buildCurrentScreen(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_history.isNotEmpty) {
+          final previousScreen = _history.removeLast();
+          _navigateToScreen(previousScreen, isBack: true);
+        } else {
+          _showExitConfirmation();
+        }
+      },
+      child: Scaffold(
+        body: PageTransitionSwitcher(
+          duration: const Duration(milliseconds: 600),
+          transitionBuilder: (Widget child, Animation<double> primaryAnimation,
+              Animation<double> secondaryAnimation) {
+            return SharedAxisTransition(
+              animation: primaryAnimation,
+              secondaryAnimation: secondaryAnimation,
+              transitionType: SharedAxisTransitionType.horizontal,
+              child: child,
+            );
+          },
+          child: _buildCurrentScreen(),
+        ),
       ),
     );
   }

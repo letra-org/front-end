@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../constants/api_config.dart';
 import '../l10n/app_localizations.dart';
@@ -35,12 +36,34 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   Future<void> _loadUserData() async {
-    // Placeholder: In a real app, you'd get this from a state management solution
-    // after login. For now, we simulate it.
-    setState(() {
-      _avatarUrl = 'https://source.unsplash.com/random/100x100?face';
-      _userName = 'Your Name';
-    });
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      print("CREATE_POST: Reading from ${file.path}");
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        print("CREATE_POST: Content: $content");
+        final data = json.decode(content);
+        final user = data['user'] as Map<String, dynamic>?;
+
+        print("CREATE_POST: Parsed user: $user");
+
+        if (user != null && mounted) {
+          setState(() {
+            _avatarUrl = user['avatar_url'] as String?;
+            _userName =
+                user['full_name'] as String? ?? user['username'] ?? 'User';
+          });
+          print("CREATE_POST: Set state done: $_userName, $_avatarUrl");
+        } else {
+          print("CREATE_POST: User is null or not mounted");
+        }
+      } else {
+        print("CREATE_POST: File does not exist");
+      }
+    } catch (e) {
+      print("Lỗi khi tải dữ liệu người dùng trên create_post_screen: $e");
+    }
   }
 
   Future<void> _pickImages() async {
@@ -320,10 +343,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundImage: _avatarUrl != null
-                      ? CachedNetworkImageProvider(_avatarUrl!)
+                  backgroundImage:
+                      (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                          ? CachedNetworkImageProvider(_avatarUrl!)
+                          : null,
+                  child: (_avatarUrl == null || _avatarUrl!.isEmpty)
+                      ? const Icon(Icons.person)
                       : null,
-                  child: _avatarUrl == null ? const Icon(Icons.person) : null,
                 ),
                 const SizedBox(width: 12),
                 Text(_userName,

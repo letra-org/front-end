@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart'; // Import intl package
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -30,7 +32,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _fetchPosts();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        final data = json.decode(content);
+        final user = data['user'] as Map<String, dynamic>?;
+
+        if (user != null && mounted) {
+          setState(() {
+            _avatarUrl = user['avatar_url'] as String?;
+          });
+        }
+      }
+    } catch (e) {
+      print("Lỗi khi tải dữ liệu người dùng trên home_screen: $e");
+    }
   }
 
   Future<void> _fetchPosts({bool loadMore = false}) async {
@@ -204,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: appLocalizations.get('Tìm kiếm'),
+                    hintText: appLocalizations.get('search_hint'),
                     prefixIcon: const Icon(Icons.search, size: 20),
                     border: InputBorder.none,
                     contentPadding:
@@ -235,7 +258,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => _fetchPosts(),
+        onRefresh: () async {
+          await _loadUserData();
+          await _fetchPosts();
+        },
         child: _isLoading
             ? _buildPostsLoading(context)
             : filteredPosts.isEmpty

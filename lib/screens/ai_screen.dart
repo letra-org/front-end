@@ -51,7 +51,10 @@ class _AIScreenState extends State<AIScreen> {
     try {
       final response = await http.get(
         Uri.parse(ApiConfig.recommendThreads),
-        headers: {'Authorization': 'Bearer $token', 'Cache-Control': 'no-cache'},
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Cache-Control': 'no-cache'
+        },
       );
       if (!mounted) return;
       if (response.statusCode == 200) {
@@ -122,7 +125,8 @@ class _AIScreenState extends State<AIScreen> {
         });
       } else {
         final errorData = json.decode(utf8.decode(response.bodyBytes));
-        throw Exception('Failed to delete thread: ${errorData['detail'] ?? response.statusCode}');
+        throw Exception(
+            'Failed to delete thread: ${errorData['detail'] ?? response.statusCode}');
       }
     } catch (e) {
       if (mounted) _showError(e.toString());
@@ -157,7 +161,8 @@ class _AIScreenState extends State<AIScreen> {
       if (mounted && response.statusCode == 200) {
         final data = json.decode(utf8.decode(response.bodyBytes));
         final List<dynamic> historyMessages = data['messages'] ?? [];
-        final List<Map<String, dynamic>> formattedMessages = historyMessages.map((msg) {
+        final List<Map<String, dynamic>> formattedMessages =
+            historyMessages.map((msg) {
           final bool isUser = msg['role'] == 'user';
           final messageType = msg['type'] ?? 'text';
           var content = msg['content'];
@@ -165,12 +170,24 @@ class _AIScreenState extends State<AIScreen> {
           if (messageType == 'recommendation') {
             try {
               if (content is String) content = json.decode(content);
-              return {'isUser': isUser, 'type': 'recommendation', 'data': content};
+              return {
+                'isUser': isUser,
+                'type': 'recommendation',
+                'data': content
+              };
             } catch (e) {
-              return {'isUser': isUser, 'type': 'text', 'text': '(Invalid recommendation format)'};
+              return {
+                'isUser': isUser,
+                'type': 'text',
+                'text': '(Invalid recommendation format)'
+              };
             }
           } else {
-            return {'isUser': isUser, 'type': 'text', 'text': content.toString()};
+            return {
+              'isUser': isUser,
+              'type': 'text',
+              'text': content.toString()
+            };
           }
         }).toList();
 
@@ -199,11 +216,12 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _selectedThreadId == null) return;
-    
+    if (_messageController.text.trim().isEmpty || _selectedThreadId == null)
+      return;
+
     final userMessage = _messageController.text.trim();
     _messageController.clear();
-    
+
     _addTextMessage(userMessage, isUser: true);
     setState(() => _isSendingMessage = true);
 
@@ -255,11 +273,13 @@ class _AIScreenState extends State<AIScreen> {
         }
       } else {
         final errorData = json.decode(utf8.decode(response.bodyBytes));
-        final errorMessage = errorData['detail'] ?? '${AppLocalizations.of(context)!.get('server_error')}: ${response.statusCode}';
+        final errorMessage = errorData['detail'] ??
+            '${AppLocalizations.of(context)!.get('server_error')}: ${response.statusCode}';
         _showError(errorMessage);
       }
     } catch (e) {
-      if (mounted) _showError('${AppLocalizations.of(context)!.get('generic_error')}: $e');
+      if (mounted)
+        _showError('${AppLocalizations.of(context)!.get('generic_error')}: $e');
     } finally {
       if (mounted) setState(() => _isSendingMessage = false);
     }
@@ -304,29 +324,45 @@ class _AIScreenState extends State<AIScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: _isListView ? null : IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              setState(() {
-                _isListView = true;
-                _selectedThreadId = null;
-              });
-            },
-          ),
-          title: Text(_isListView ? appLocalizations.get('ai_assistant_title') : appLocalizations.get('chat_title'), style: const TextStyle(color: Colors.white)),
+          leading: _isListView
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () {
+                    setState(() {
+                      _isListView = true;
+                      _selectedThreadId = null;
+                    });
+                  },
+                ),
+          title: Text(
+              _isListView
+                  ? appLocalizations.get('ai_assistant_title')
+                  : appLocalizations.get('chat_title'),
+              style: const TextStyle(color: Colors.white)),
           backgroundColor: const Color(0xFF1E88E5),
-          actions: _isListView ? [IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _fetchThreads)] : [],
+          actions: _isListView
+              ? [
+                  IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: _fetchThreads)
+                ]
+              : [],
         ),
         body: _isListView ? _buildThreadsList() : _buildChatView(),
-        floatingActionButton: _isListView ? FloatingActionButton(
-          onPressed: _createNewThreadAndChat,
-          backgroundColor: const Color(0xFF1E88E5),
-          child: const Icon(Icons.add, color: Colors.white),
-        ) : null,
-        bottomNavigationBar: _isListView ? BottomNavigationBarWidget(
-          currentScreen: 'ai',
-          onNavigate: widget.onNavigate,
-        ) : null,
+        floatingActionButton: _isListView
+            ? FloatingActionButton(
+                onPressed: _createNewThreadAndChat,
+                backgroundColor: const Color(0xFF1E88E5),
+                child: const Icon(Icons.add, color: Colors.white),
+              )
+            : null,
+        bottomNavigationBar: _isListView
+            ? BottomNavigationBarWidget(
+                currentScreen: 'ai',
+                onNavigate: widget.onNavigate,
+              )
+            : null,
       ),
     );
   }
@@ -343,9 +379,29 @@ class _AIScreenState extends State<AIScreen> {
       itemCount: _threads.length,
       itemBuilder: (context, index) {
         final thread = _threads[index];
+        String displayTitle = thread['title'] ?? '';
+
+        // If title is generic or empty, try to use first_message
+        if (displayTitle.isEmpty || displayTitle.startsWith('Conversation #')) {
+          displayTitle = thread['first_message'] ??
+              thread['last_message'] ??
+              '${appLocalizations.get('ai_conversation')} #${index + 1}';
+        }
+
+        // Limit title length
+        if (displayTitle.length > 50) {
+          displayTitle = '${displayTitle.substring(0, 47)}...';
+        }
+
         return ListTile(
-          title: Text(thread['title'] ?? '${appLocalizations.get('ai_conversation')} #${index + 1}'),
-          subtitle: Text('${thread['message_count'] ?? 0} ${appLocalizations.get('ai_messages')}'),
+          title: Text(
+            displayTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+              '${thread['message_count'] ?? 0} ${appLocalizations.get('ai_messages')}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             onPressed: () => _confirmDelete(thread['id']),
@@ -364,8 +420,13 @@ class _AIScreenState extends State<AIScreen> {
         title: Text(appLocalizations.get('ai_delete_conversation_title')),
         content: Text(appLocalizations.get('ai_delete_conversation_content')),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(appLocalizations.get('cancel'))),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: Text(appLocalizations.get('delete'), style: const TextStyle(color: Colors.red))),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(appLocalizations.get('cancel'))),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(appLocalizations.get('delete'),
+                  style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -389,7 +450,9 @@ class _AIScreenState extends State<AIScreen> {
             },
           ),
         ),
-        if (_isSendingMessage) const Padding(padding: EdgeInsets.all(8.0), child: LinearProgressIndicator()),
+        if (_isSendingMessage)
+          const Padding(
+              padding: EdgeInsets.all(8.0), child: LinearProgressIndicator()),
         _buildInputArea(isDarkMode),
       ],
     );
@@ -397,7 +460,7 @@ class _AIScreenState extends State<AIScreen> {
 
   Widget _buildMessageItem(Map<String, dynamic> message, bool isDarkMode) {
     final isUser = message['isUser'] as bool;
-    
+
     if (message['type'] == 'recommendation') {
       return _buildRecommendationWidget(message['data']);
     }
@@ -408,12 +471,17 @@ class _AIScreenState extends State<AIScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isUser ? const Color(0xFF1E88E5) : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
+          color: isUser
+              ? const Color(0xFF1E88E5)
+              : (isDarkMode ? Colors.grey[800] : Colors.grey[200]),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           message['text']?.toString() ?? '',
-          style: TextStyle(color: isUser ? Colors.white : (isDarkMode ? Colors.white : Colors.black87)),
+          style: TextStyle(
+              color: isUser
+                  ? Colors.white
+                  : (isDarkMode ? Colors.white : Colors.black87)),
         ),
       ),
     );
@@ -421,7 +489,9 @@ class _AIScreenState extends State<AIScreen> {
 
   Widget _buildRecommendationWidget(Map<String, dynamic> recommendationData) {
     final List<dynamic> destinations = recommendationData['destinations'] ?? [];
-    final summary = recommendationData['profile']?['summary'] ?? 'Dựa trên lựa chọn của bạn, đây là một vài gợi ý:';
+    final appLocalizations = AppLocalizations.of(context)!;
+    final summary = recommendationData['profile']?['summary'] ??
+        appLocalizations.get('ai_recommendation_summary');
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -430,7 +500,9 @@ class _AIScreenState extends State<AIScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(summary, style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic)),
+            child: Text(summary,
+                style: TextStyle(
+                    color: Colors.grey[600], fontStyle: FontStyle.italic)),
           ),
           Container(
             height: 350,
@@ -449,6 +521,7 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Widget _buildDestinationCard(Map<String, dynamic> destination) {
+    final appLocalizations = AppLocalizations.of(context)!;
     return SizedBox(
       width: 250,
       child: Card(
@@ -463,7 +536,9 @@ class _AIScreenState extends State<AIScreen> {
               height: 100,
               width: double.infinity,
               color: Colors.blue.shade100,
-              child: Center(child: Icon(Icons.map, size: 40, color: Colors.blue.shade800)),
+              child: Center(
+                  child:
+                      Icon(Icons.map, size: 40, color: Colors.blue.shade800)),
             ),
             Padding(
               padding: const EdgeInsets.all(12.0),
@@ -471,33 +546,41 @@ class _AIScreenState extends State<AIScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    destination['name'] ?? 'Unknown Destination',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                    destination['name'] ??
+                        appLocalizations.get('unknown_destination'),
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 14, color: Colors.grey.shade600),
+                      Icon(Icons.location_on,
+                          size: 14, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Text(
                         destination['location'] ?? '',
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 13, color: Colors.grey.shade600),
                       ),
                     ],
                   ),
                   const Divider(height: 16),
                   Text(
-                    destination['description'] ?? 'No description available.',
+                    destination['description'] ??
+                        appLocalizations.get('no_description'),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 13, height: 1.4),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Lý do phù hợp:',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                    appLocalizations.get('ai_match_reason'),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade700),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -531,8 +614,11 @@ class _AIScreenState extends State<AIScreen> {
                   hintText: appLocalizations.get('type_your_message_hint'),
                   filled: true,
                   fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 onSubmitted: (_) => _sendMessage(),
               ),

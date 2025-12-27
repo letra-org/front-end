@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_config.dart';
+import '../l10n/app_localizations.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? friendId;
@@ -30,6 +31,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _myId;
   String _connectionStatus = 'Connecting...';
   bool _isConnected = false;
+  late AppLocalizations _l10n;
 
   @override
   void initState() {
@@ -105,11 +107,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 if (status == 'undelivered') {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Bạn bè hiện đang ngoại tuyến. Tin nhắn sẽ được gửi sau.'),
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!
+                          .get('offline_message_notice')),
                       backgroundColor: Colors.blueGrey,
-                      duration: Duration(seconds: 2),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 }
@@ -160,19 +162,40 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           setState(() {
             _isConnected = false;
-            _connectionStatus = 'Failed to connect';
+            _connectionStatus = 'Failed';
           });
         }
       }
     } else {
       if (mounted) {
+        final appLocalizations = AppLocalizations.of(context)!;
         setState(() {
-          _connectionStatus = 'Auth Error';
+          _connectionStatus = 'Error';
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Authentication token missing.')),
+          SnackBar(content: Text(appLocalizations.get('auth_token_missing'))),
         );
       }
+    }
+  }
+
+  String _getConnectionStatusText() {
+    final appLocalizations = AppLocalizations.of(context);
+    if (appLocalizations == null) return _connectionStatus;
+
+    switch (_connectionStatus) {
+      case 'Connecting...':
+        return appLocalizations.get('connecting');
+      case 'Connected':
+        return appLocalizations.get('connected');
+      case 'Disconnected':
+        return appLocalizations.get('disconnected');
+      case 'Connection Error':
+      case 'Error':
+      case 'Failed':
+        return appLocalizations.get('connection_error');
+      default:
+        return _connectionStatus;
     }
   }
 
@@ -257,14 +280,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.friendId == null || widget.friendName == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
-        body: const Center(child: Text('Friend not specified.')),
-      );
-    }
-
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    _l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
@@ -316,7 +333,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _connectionStatus,
+                        _getConnectionStatusText(),
                         style: const TextStyle(
                             color: Colors.white70, fontSize: 12),
                       ),
@@ -458,8 +475,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: TextField(
                   controller: _controller,
                   maxLines: null,
-                  decoration: const InputDecoration(
-                    hintText: 'Type a message...',
+                  decoration: InputDecoration(
+                    hintText: _l10n.get('type_your_message_hint'),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 10),
                   ),
