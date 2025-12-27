@@ -9,7 +9,8 @@ class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations);
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
@@ -32,7 +33,8 @@ class AppLocalizations {
       'accuracy_label': 'Accuracy',
       'share_location_button': 'Share Location',
       'location_shared_button': 'Location Shared',
-      'location_sent_message': 'Location has been sent. Please keep your phone on.',
+      'location_sent_message':
+          'Location has been sent. Please keep your phone on.',
       'emergency_contacts_label': 'Emergency Contacts',
       'police': 'Police',
       'fire_department': 'Fire Dept.',
@@ -76,19 +78,32 @@ class AppLocalizations {
       // AI Screen
       'ai_assistant_title': 'AI Travel Assistant',
       'ai_assistant_subtitle': 'Smart Turtle 🇻🇳',
-      'ai_welcome_message': 'Hello! I am a Vietnam travel AI assistant 🐢\nAsk me about tourist destinations!',
+      'ai_welcome_message':
+          'Hello! I am a Vietnam travel AI assistant 🐢\nAsk me about tourist destinations!',
       'ai_input_hint': 'Ask AI about Vietnam travel...',
-      'ai_response_halong': '🌊 Halong Bay is a world natural heritage site in Quang Ninh. You should go from March to May or September to November for the best weather. Don\'t forget to enjoy fresh seafood!',
-      'ai_response_sapa': '🏔️ Sapa in Lao Cai is famous for its beautiful terraced fields, best seen in September-October. The temperature is cool year-round, remember to bring warm clothes! You should try thang co and salmon here.',
-      'ai_response_phuquoc': '🏝️ Phu Quoc - the pearl island of Vietnam! The ideal time is from November to March. Visit Sao Beach, Long Beach, and don\'t miss the Phu Quoc night market with delicious fresh seafood!',
-      'ai_response_hoian': '🏮 Hoi An ancient town is beautiful at night with sparkling lanterns. You should go on the full moon day to release flower lanterns. Try Cao Lau, Mi Quang, and white rose dumplings!',
-      'ai_response_danang': '🌉 Da Nang has the famous Golden Bridge, and My Khe beach is one of the most beautiful in Vietnam. Go from March to August for swimming. You must try Mi Quang and fish cake noodles!',
-      'ai_response_nhatrang': '🏖️ Nha Trang - a beach paradise! Go snorkeling to see coral at Hon Mun, take a mud bath, and enjoy delicious fresh seafood. The best time to visit is from March to September!',
-      'ai_response_dalat': '🌸 Da Lat - the city of thousands of flowers! Cool weather all year round. Visit Xuan Huong Lake, Datanla Waterfall, and don\'t forget to take photos at the old train station. Try soy milk and grilled rice paper!',
-      'ai_response_weather': '🌤️ North: Autumn (Sept-Nov) is the best\n🌞 Central: Feb-Aug to avoid storms\n☀️ South: Nov-Apr is dry and easy to travel\n\nWhere do you want to go for more details?',
-      'ai_response_food': '🍜 Famous dishes:\n• Hanoi: Pho, Bun Cha, Banh Cuon\n• Da Nang: Mi Quang, Bun Cha Ca\n• Hoi An: Cao Lau, White Rose Dumplings\n• Saigon: Banh Mi, Hu Tieu, Com Tam\nWhere are you for specific suggestions?',
-      'ai_response_cost': '💰 Estimated cost (1 day):\n• Low budget: 300-500k VND\n• Medium: 800k-1.5m VND\n• High-end: 2-5m VND\n\nWhich location do you want details for?',
-      'ai_response_default': '🐢 To help you better, please ask about:\n• Specific tourist destinations\n• Weather and seasons\n• Local dishes\n• Costs and itineraries\nExample: \"When should I go to Sapa?\"',
+      'ai_response_halong':
+          '🌊 Halong Bay is a world natural heritage site in Quang Ninh. You should go from March to May or September to November for the best weather. Don\'t forget to enjoy fresh seafood!',
+      'ai_response_sapa':
+          '🏔️ Sapa in Lao Cai is famous for its beautiful terraced fields, best seen in September-October. The temperature is cool year-round, remember to bring warm clothes! You should try thang co and salmon here.',
+      'ai_response_phuquoc':
+          '🏝️ Phu Quoc - the pearl island of Vietnam! The ideal time is from November to March. Visit Sao Beach, Long Beach, and don\'t miss the Phu Quoc night market with delicious fresh seafood!',
+      'ai_response_hoian':
+          '🏮 Hoi An ancient town is beautiful at night with sparkling lanterns. You should go on the full moon day to release flower lanterns. Try Cao Lau, Mi Quang, and white rose dumplings!',
+      'ai_response_danang':
+          '🌉 Da Nang has the famous Golden Bridge, and My Khe beach is one of the most beautiful in Vietnam. Go from March to August for swimming. You must try Mi Quang and fish cake noodles!',
+      'ai_response_nhatrang':
+          '🏖️ Nha Trang - a beach paradise! Go snorkeling to see coral at Hon Mun, take a mud bath, and enjoy delicious fresh seafood. The best time to visit is from March to September!',
+      'ai_response_dalat':
+          '🌸 Da Lat - the city of thousands of flowers! Cool weather all year round. Visit Xuan Huong Lake, Datanla Waterfall, and don\'t forget to take photos at the old train station. Try soy milk and grilled rice paper!',
+      'ai_response_weather':
+          '🌤️ North: Autumn (Sept-Nov) is the best\n🌞 Central: Feb-Aug to avoid storms\n☀️ South: Nov-Apr is dry and easy to travel\n\nWhere do you want to go for more details?',
+      'ai_response_food':
+          '🍜 Famous dishes:\n• Hanoi: Pho, Bun Cha, Banh Cuon\n• Da Nang: Mi Quang, Bun Cha Ca\n• Hoi An: Cao Lau, White Rose Dumplings\n• Saigon: Banh Mi, Hu Tieu, Com Tam\nWhere are you for specific suggestions?',
+      'ai_response_cost':
+          '💰 Estimated cost (1 day):\n• Low budget: 300-500k VND\n• Medium: 800k-1.5m VND\n• High-end: 2-5m VND\n\nWhich location do you want details for?',
+      'ai_response_default':
+          '🐢 To help you better, please ask about:\n• Specific tourist destinations\n• Weather and seasons\n• Local dishes\n• Costs and itineraries\nExample: \"When should I go to Sapa?\"',
+      'ai_delete_success': 'Delete done!',
 
       // Friends Screen
       'friends_title': 'Friends',
@@ -97,18 +112,20 @@ class AppLocalizations {
       // Sponsors Screen
       'sponsors_title': 'Sponsors',
       'sponsors_thank_you': 'Thank You to Our Sponsors',
-      'sponsors_description': 'This project is supported by partners and sponsors who believe in the vision of developing tourism in Vietnam.',
-      
+      'sponsors_description':
+          'This project is supported by partners and sponsors who believe in the vision of developing tourism in Vietnam.',
+
       // Team Screen
       'development_team_title': 'Development Team',
       'team_intro_title': 'The Letra Development Team',
-      'team_intro_body': 'The application was developed by a dedicated team with a mission to connect tourists and explore the beauty of Vietnam.',
+      'team_intro_body':
+          'The application was developed by a dedicated team with a mission to connect tourists and explore the beauty of Vietnam.',
 
       // Security Screen
       'security_title': 'Security',
       'change_password': 'Change Password',
       'change_password_subtitle': 'Update to a new password',
-      
+
       // Home Screen
       'search_hint': 'Search for places, posts...',
       'sort_tooltip_newest': 'Newest',
@@ -161,7 +178,8 @@ class AppLocalizations {
       'app_info_title': 'App Information',
       'version': 'Version 1.0.0',
       'about_letra_title': 'About Letra',
-      'about_letra_body': 'Letra is a Vietnamese travel application that helps you discover and share wonderful destinations across the country.',
+      'about_letra_body':
+          'Letra is a Vietnamese travel application that helps you discover and share wonderful destinations across the country.',
       'copyright': '© 2025 Letra. All rights reserved.',
 
       // User Profile Screen
@@ -182,9 +200,48 @@ class AppLocalizations {
       'email_label': 'Email',
       'phone_label': 'Phone Number',
       'save_changes_button': 'Save Changes',
+      'current_password_empty': 'Please enter your current password',
+      'new_password_short': 'Password must be at least 6 characters',
+      'passwords_mismatch': 'Passwords do not match',
+      'invalid_data_error': 'Invalid data.',
+      'password_recovery': 'Password Recovery',
+      'password_recovery_instructions':
+          'Enter your email address and we will send you a link to reset your password.',
+      'empty_email_prompt': 'Please enter your email',
+      'send_recovery_email_button': 'Send Recovery Email',
+      'back_to_login': 'Back to Login',
+      'email_sent_title': 'Email Sent!',
+      'check_your_email_part1': 'Please check your email ',
+      'check_your_email_part2': ' for instructions to reset your password.',
+      'no_email_found_message':
+          'Didn\'t receive an email? Check your spam folder or try again.',
+      'reset_password_title': 'Reset Password',
+      'reset_password_subtitle': 'Create a new secure password',
+      'reset_password_button': 'Reset Password',
+      'reset_success_message': 'Your password has been successfully reset!',
+      'unfriend_button': 'Unfriend',
+      'unfriend_confirm_title': 'Unfriend?',
+      'unfriend_confirm_message':
+          'Are you sure you want to remove this friend?',
+      'unfriend_success': 'Removed friend successfully',
+      'yes_label': 'Yes',
+      'no_label': 'No',
+      'generate_ai_caption': 'Generate AI Caption',
+      'ai_generating': 'AI is thinking...',
+      'ai_caption_error': 'Failed to generate caption',
+      'no_image_selected': 'Please select an image first',
+      'generate_ai_story': 'Generate AI Story',
+      'ai_album_story_error': 'Failed to generate story',
+      'select_multiple_images': 'Please select at least 2 images',
+      'change_password_success':
+          'Password changed successfully. Please login again with your new password.',
+      'enable_location_sharing': 'Enable Emergency Location Sharing',
+      'location_permission_denied':
+          'Location permission is required for this feature',
+      'location_permission_settings': 'Please enable location in settings',
     },
     'vi': {
-       // General
+      // General
       'loading': 'Đang tải...',
       'show_less': '<< Thu gọn',
       'show_more': '... Xem thêm >>',
@@ -196,14 +253,16 @@ class AppLocalizations {
       'exit_dialog_no': 'Ở lại',
 
       // Emergency Screen
-      'emergency_warning': 'Chức năng này chỉ sử dụng trong trường hợp khẩn cấp',
+      'emergency_warning':
+          'Chức năng này chỉ sử dụng trong trường hợp khẩn cấp',
       'current_location_label': 'Vị trí hiện tại của bạn',
       'address_label': 'Địa chỉ',
       'coordinates_label': 'Tọa độ',
       'accuracy_label': 'Độ chính xác',
       'share_location_button': 'Chia sẻ vị trí',
       'location_shared_button': 'Đã chia sẻ',
-      'location_sent_message': 'Vị trí đã được gửi. Vui lòng giữ điện thoại bật.',
+      'location_sent_message':
+          'Vị trí đã được gửi. Vui lòng giữ điện thoại bật.',
       'emergency_contacts_label': 'Số điện thoại khẩn cấp',
       'police': 'Cảnh sát',
       'fire_department': 'Cứu hỏa',
@@ -247,19 +306,32 @@ class AppLocalizations {
       // AI Screen
       'ai_assistant_title': 'AI Trợ lý Du lịch',
       'ai_assistant_subtitle': 'Rùa thông minh 🇻🇳',
-      'ai_welcome_message': 'Xin chào! Tôi là trợ lý AI du lịch Việt Nam 🐢\nHãy hỏi tôi về các địa điểm du lịch nhé!',
+      'ai_welcome_message':
+          'Xin chào! Tôi là trợ lý AI du lịch Việt Nam 🐢\nHãy hỏi tôi về các địa điểm du lịch nhé!',
       'ai_input_hint': 'Hỏi AI về du lịch Việt Nam...',
-      'ai_response_halong': '🌊 Vịnh Hạ Long là di sản thiên nhiên thế giới tại Quảng Ninh. Bạn nên đi từ tháng 3-5 hoặc 9-11 để thời tiết đẹp nhất. Đừng quên thưởng thức hải sản tươi sống nhé!',
-      'ai_response_sapa': '🏔️ Sapa ở Lào Cai nổi tiếng với ruộng bậc thang đẹp nhất vào tháng 9-10. Nhiệt độ mát mẻ quanh năm, nhớ mang áo ấm! Nên thử món thắng cố và cá hồi ở đây.',
-      'ai_response_phuquoc': '🏝️ Phú Quốc - đảo ngọc của Việt Nam! Thời điểm lý tưởng là 11-3. Ghé thăm bãi Sao, bãi Dài, và đừng bỏ lỡ chợ đêm Phú Quốc với hải sản tươi ngon!',
-      'ai_response_hoian': '🏮 Hội An phố cổ thật đẹp vào buổi tối với đèn lồng rực rỡ. Nên đi vào rằm để thả đèn hoa đăng. Thử cao lầu, mì Quảng và bánh bao vạc nhé!',
-      'ai_response_danang': '🌉 Đà Nẵng có Cầu Vàng nổi tiếng, bãi biển Mỹ Khê đẹp nhất Việt Nam. Đi từ tháng 3-8 để tắm biển. Phải thử mì Quảng, bún chả cá!',
-      'ai_response_nhatrang': '🏖️ Nha Trang - thiên đường biển! Lặn biển ngắm san hô ở Hòn Mun, tắm bùn khoáng, thưởng thức hải sản tươi ngon. Đi từ tháng 3-9 nhé!',
-      'ai_response_dalat': '🌸 Đà Lạt - thành phố ngàn hoa! Thời tiết mát mẻ quanh năm. Ghé hồ Xuân Hương, thác Datanla, và nhớ chụp ảnh tại nhà ga cũ. Thử sữa đậu nành, bánh tráng nướng nhé!',
-      'ai_response_weather': '🌤️ Miền Bắc: mùa thu (9-11) đẹp nhất\n🌞 Miền Trung: 2-8 tránh mưa bão\n☀️ Miền Nam: 11-4 khô ráo, dễ đi\n\nBạn muốn đi đâu để tôi tư vấn chi tiết hơn?',
-      'ai_response_food': '🍜 Món ăn nổi tiếng:\n• Hà Nội: Phở, bún chả, bánh cuốn\n• Đà Nẵng: Mì Quảng, bún chả cá\n• Hội An: Cao lầu, bánh bao vạc\n• Sài Gòn: Bánh mì, hủ tiếu, cơm tấm\n\nBạn đang ở đâu để tôi gợi ý cụ thể?',
-      'ai_response_cost': '💰 Chi phí ước tính (1 ngày):\n• Ngân sách thấp: 300-500k VNĐ\n• Trung bình: 800k-1.5tr VNĐ\n• Cao cấp: 2-5tr VNĐ\n\nBạn muốn biết chi tiết cho địa điểm nào?',
-      'ai_response_default': '🐢 Để tôi giúp bạn tốt hơn, hãy hỏi về:\n• Địa điểm du lịch cụ thể\n• Thời tiết và mùa đi\n• Món ăn địa phương\n• Chi phí và lịch trình\nVí dụ: \"Nên đi Sapa vào tháng mấy?\"',
+      'ai_response_halong':
+          '🌊 Vịnh Hạ Long là di sản thiên nhiên thế giới tại Quảng Ninh. Bạn nên đi từ tháng 3-5 hoặc 9-11 để thời tiết đẹp nhất. Đừng quên thưởng thức hải sản tươi sống nhé!',
+      'ai_response_sapa':
+          '🏔️ Sapa ở Lào Cai nổi tiếng với ruộng bậc thang đẹp nhất vào tháng 9-10. Nhiệt độ mát mẻ quanh năm, nhớ mang áo ấm! Nên thử món thắng cố và cá hồi ở đây.',
+      'ai_response_phuquoc':
+          '🏝️ Phú Quốc - đảo ngọc của Việt Nam! Thời điểm lý tưởng là 11-3. Ghé thăm bãi Sao, bãi Dài, và đừng bỏ lỡ chợ đêm Phú Quốc với hải sản tươi ngon!',
+      'ai_response_hoian':
+          '🏮 Hội An phố cổ thật đẹp vào buổi tối với đèn lồng rực rỡ. Nên đi vào rằm để thả đèn hoa đăng. Thử cao lầu, mì Quảng và bánh bao vạc nhé!',
+      'ai_response_danang':
+          '🌉 Đà Nẵng có Cầu Vàng nổi tiếng, bãi biển Mỹ Khê đẹp nhất Việt Nam. Đi từ tháng 3-8 để tắm biển. Phải thử mì Quảng, bún chả cá!',
+      'ai_response_nhatrang':
+          '🏖️ Nha Trang - thiên đường biển! Lặn biển ngắm san hô ở Hòn Mun, tắm bùn khoáng, thưởng thức hải sản tươi ngon. Đi từ tháng 3-9 nhé!',
+      'ai_response_dalat':
+          '🌸 Đà Lạt - thành phố ngàn hoa! Thời tiết mát mẻ quanh năm. Ghé hồ Xuân Hương, thác Datanla, và nhớ chụp ảnh tại nhà ga cũ. Thử sữa đậu nành, bánh tráng nướng nhé!',
+      'ai_response_weather':
+          '🌤️ Miền Bắc: mùa thu (9-11) đẹp nhất\n🌞 Miền Trung: 2-8 tránh mưa bão\n☀️ Miền Nam: 11-4 khô ráo, dễ đi\n\nBạn muốn đi đâu để tôi tư vấn chi tiết hơn?',
+      'ai_response_food':
+          '🍜 Món ăn nổi tiếng:\n• Hà Nội: Phở, bún chả, bánh cuốn\n• Đà Nẵng: Mì Quảng, bún chả cá\n• Hội An: Cao lầu, bánh bao vạc\n• Sài Gòn: Bánh mì, hủ tiếu, cơm tấm\n\nBạn đang ở đâu để tôi gợi ý cụ thể?',
+      'ai_response_cost':
+          '💰 Chi phí ước tính (1 ngày):\n• Ngân sách thấp: 300-500k VNĐ\n• Trung bình: 800k-1.5tr VNĐ\n• Cao cấp: 2-5tr VNĐ\n\nBạn muốn biết chi tiết cho địa điểm nào?',
+      'ai_response_default':
+          '🐢 Để tôi giúp bạn tốt hơn, hãy hỏi về:\n• Địa điểm du lịch cụ thể\n• Thời tiết và mùa đi\n• Món ăn địa phương\n• Chi phí và lịch trình\nVí dụ: \"Nên đi Sapa vào tháng mấy?\"',
+      'ai_delete_success': 'Đã xoá thành công',
 
       // Friends Screen
       'friends_title': 'Bạn bè',
@@ -268,12 +340,14 @@ class AppLocalizations {
       // Sponsors Screen
       'sponsors_title': 'Nhà tài trợ',
       'sponsors_thank_you': 'Cảm ơn các nhà tài trợ',
-      'sponsors_description': 'Dự án được hỗ trợ bởi các đối tác và nhà tài trợ tin tưởng vào tầm nhìn phát triển du lịch Việt Nam.',
+      'sponsors_description':
+          'Dự án được hỗ trợ bởi các đối tác và nhà tài trợ tin tưởng vào tầm nhìn phát triển du lịch Việt Nam.',
 
       // Team Screen
       'development_team_title': 'Đội ngũ phát triển',
       'team_intro_title': 'Đội ngũ phát triển Letra',
-      'team_intro_body': 'Ứng dụng được phát triển bởi đội ngũ tận tâm với sứ mệnh kết nối du khách và khám phá vẻ đẹp Việt Nam.',
+      'team_intro_body':
+          'Ứng dụng được phát triển bởi đội ngũ tận tâm với sứ mệnh kết nối du khách và khám phá vẻ đẹp Việt Nam.',
 
       // Security Screen
       'security_title': 'Bảo mật',
@@ -332,7 +406,8 @@ class AppLocalizations {
       'app_info_title': 'Thông tin ứng dụng',
       'version': 'Phiên bản 1.0.0',
       'about_letra_title': 'Về Letra',
-      'about_letra_body': 'Letra là ứng dụng du lịch Việt Nam giúp bạn khám phá và chia sẻ những điểm đến tuyệt vời trên khắp đất nước.',
+      'about_letra_body':
+          'Letra là ứng dụng du lịch Việt Nam giúp bạn khám phá và chia sẻ những điểm đến tuyệt vời trên khắp đất nước.',
       'copyright': '© 2025 Letra. All rights reserved.',
 
       // User Profile Screen
@@ -353,6 +428,45 @@ class AppLocalizations {
       'email_label': 'Email',
       'phone_label': 'Số điện thoại',
       'save_changes_button': 'Lưu thay đổi',
+      'current_password_empty': 'Vui lòng nhập mật khẩu hiện tại',
+      'new_password_short': 'Mật khẩu phải có ít nhất 6 ký tự',
+      'passwords_mismatch': 'Mật khẩu không khớp',
+      'invalid_data_error': 'Dữ liệu không hợp lệ.',
+      'password_recovery': 'Khôi phục mật khẩu',
+      'password_recovery_instructions':
+          'Nhập địa chỉ email của bạn và chúng tôi sẽ gửi cho bạn một liên kết để đặt lại mật khẩu.',
+      'empty_email_prompt': 'Vui lòng nhập email của bạn',
+      'send_recovery_email_button': 'Gửi email khôi phục',
+      'back_to_login': 'Quay lại đăng nhập',
+      'email_sent_title': 'Đã gửi email!',
+      'check_your_email_part1': 'Vui lòng kiểm tra email ',
+      'check_your_email_part2': ' để xem hướng dẫn đặt lại mật khẩu.',
+      'no_email_found_message':
+          'Bạn không nhận được email? Hãy kiểm tra hòm thư rác hoặc thử lại.',
+      'reset_password_title': 'Đặt lại mật khẩu',
+      'reset_password_subtitle': 'Tạo mật khẩu an toàn mới',
+      'reset_password_button': 'Đặt lại mật khẩu',
+      'reset_success_message': 'Mật khẩu của bạn đã được đặt lại thành công!',
+      'unfriend_button': 'Hủy kết bạn',
+      'unfriend_confirm_title': 'Hủy kết bạn?',
+      'unfriend_confirm_message':
+          'Bạn có chắc chắn muốn hủy kết bạn với người này?',
+      'unfriend_success': 'Đã hủy kết bạn thành công',
+      'yes_label': 'Có',
+      'no_label': 'Không',
+      'generate_ai_caption': 'Tạo chú thích AI',
+      'ai_generating': 'AI đang suy nghĩ...',
+      'ai_caption_error': 'Không thể tạo chú thích',
+      'no_image_selected': 'Vui lòng chọn ảnh trước',
+      'generate_ai_story': 'Tạo câu chuyện AI',
+      'ai_album_story_error': 'Không thể tạo câu chuyện',
+      'select_multiple_images': 'Vui lòng chọn ít nhất 2 ảnh',
+      'change_password_success':
+          'Đổi mật khẩu thành công. Vui lòng đăng nhập lại với mật khẩu mới.',
+      'enable_location_sharing': 'Bật chia sẻ vị trí khẩn cấp',
+      'location_permission_denied':
+          'Cần quyền truy cập vị trí để sử dụng tính năng này',
+      'location_permission_settings': 'Vui lòng bật vị trí trong cài đặt',
     },
   };
 
@@ -361,7 +475,8 @@ class AppLocalizations {
   }
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override

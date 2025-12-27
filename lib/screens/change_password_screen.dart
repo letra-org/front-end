@@ -68,10 +68,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _isLoading = true;
     });
 
+    final appLocalizations = AppLocalizations.of(context)!;
+
     final token = await _getAuthToken();
     if (token == null) {
-      _showFeedback('Lỗi xác thực. Vui lòng đăng nhập lại.', isError: true);
-      setState(() { _isLoading = false; });
+      _showFeedback(appLocalizations.get('auth_error'), isError: true);
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
@@ -91,13 +95,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Assuming the response body is a simple string for success
-        _showFeedback(response.body);
+        _showFeedback(appLocalizations.get('change_password_success'));
         widget.onNavigate('settings');
       } else if (response.statusCode == 422) {
         final errorBody = json.decode(response.body);
         final detail = errorBody['detail'];
-        String errorMessage = 'Dữ liệu không hợp lệ.';
+        String errorMessage = appLocalizations.get('invalid_data_error');
         if (detail is List && detail.isNotEmpty) {
           final firstError = detail[0];
           if (firstError is Map && firstError.containsKey('msg')) {
@@ -106,11 +109,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         }
         _showFeedback(errorMessage, isError: true);
       } else {
-         final errorBody = json.decode(response.body);
-        _showFeedback('Lỗi: ${errorBody['detail'] ?? response.statusCode}', isError: true);
+        final errorBody = json.decode(response.body);
+        _showFeedback(
+            '${appLocalizations.get('generic_error')}${errorBody['detail'] ?? response.statusCode}',
+            isError: true);
       }
     } catch (e) {
-      _showFeedback('Lỗi kết nối: ${e.toString()}', isError: true);
+      _showFeedback('${appLocalizations.get('generic_error')}${e.toString()}',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -119,7 +125,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -166,14 +171,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     decoration: InputDecoration(
                       labelText: appLocalizations.get('current_password_label'),
                       suffixIcon: IconButton(
-                        icon: Icon(_isCurrentPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _isCurrentPasswordVisible = !_isCurrentPasswordVisible),
+                        icon: Icon(_isCurrentPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () => setState(() =>
+                            _isCurrentPasswordVisible =
+                                !_isCurrentPasswordVisible),
                       ),
                     ),
                     obscureText: !_isCurrentPasswordVisible,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Vui lòng nhập mật khẩu hiện tại';
+                        return appLocalizations.get('current_password_empty');
                       }
                       return null;
                     },
@@ -184,14 +193,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     decoration: InputDecoration(
                       labelText: appLocalizations.get('new_password_label'),
                       suffixIcon: IconButton(
-                        icon: Icon(_isNewPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _isNewPasswordVisible = !_isNewPasswordVisible),
+                        icon: Icon(_isNewPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () => setState(() =>
+                            _isNewPasswordVisible = !_isNewPasswordVisible),
                       ),
                     ),
                     obscureText: !_isNewPasswordVisible,
                     validator: (value) {
-                       if (value == null || value.length < 6) {
-                        return 'Mật khẩu phải có ít nhất 6 ký tự';
+                      if (value == null || value.length < 6) {
+                        return appLocalizations.get('new_password_short');
                       }
                       return null;
                     },
@@ -200,16 +212,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   TextFormField(
                     controller: _confirmPasswordController,
                     decoration: InputDecoration(
-                      labelText: appLocalizations.get('confirm_new_password_label'),
+                      labelText:
+                          appLocalizations.get('confirm_new_password_label'),
                       suffixIcon: IconButton(
-                        icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+                        icon: Icon(_isConfirmPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () => setState(() =>
+                            _isConfirmPasswordVisible =
+                                !_isConfirmPasswordVisible),
                       ),
                     ),
                     obscureText: !_isConfirmPasswordVisible,
-                     validator: (value) {
+                    validator: (value) {
                       if (value != _newPasswordController.text) {
-                        return 'Mật khẩu không khớp';
+                        return appLocalizations.get('passwords_mismatch');
                       }
                       return null;
                     },
@@ -217,11 +234,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleChangePassword,
-                    child: _isLoading 
+                    child: _isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 3, color: Colors.white),
                           )
                         : Text(appLocalizations.get('update_password_button')),
                   ),

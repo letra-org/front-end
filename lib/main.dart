@@ -22,8 +22,8 @@ import 'screens/sponsors_screen.dart';
 import 'screens/app_info_screen.dart';
 import 'screens/emergency_location_screen.dart';
 import 'screens/friends_screen.dart';
-import 'screens/chat_screen.dart';
 import 'screens/ai_landmark_result_screen.dart';
+import 'screens/reset_password_screen.dart';
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/friend_request_provider.dart'; // Import new provider
@@ -40,12 +40,15 @@ void main() {
 
   runApp(
     DevicePreview(
-      enabled: !kReleaseMode && !(defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS),
+      enabled: !kReleaseMode &&
+          !(defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS),
       builder: (context) => MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => LanguageProvider()),
-          ChangeNotifierProvider(create: (_) => FriendRequestProvider()), // Add new provider
+          ChangeNotifierProvider(
+              create: (_) => FriendRequestProvider()), // Add new provider
         ],
         child: const LetraApp(),
       ),
@@ -69,8 +72,9 @@ class LetraApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-          locale: languageProvider.currentLocale, 
+          themeMode:
+              themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          locale: languageProvider.currentLocale,
           supportedLocales: const [
             Locale('en', ''),
             Locale('vi', ''),
@@ -108,56 +112,97 @@ class _AppNavigatorState extends State<AppNavigator> {
       }
     });
   }
-  
+
   void _handleLogout() {
     setState(() {
       _currentScreen = 'login';
-       _screenData.clear();
+      _screenData.clear();
     });
   }
 
   Widget _buildCurrentScreen() {
     switch (_currentScreen) {
       case 'welcome':
-        return WelcomeScreen(key: const ValueKey('welcome'), onLogin: () => _navigateToScreen('login'));
+        return WelcomeScreen(
+            key: const ValueKey('welcome'),
+            onLogin: () => _navigateToScreen('login'));
       case 'login':
-        return LoginScreen(key: const ValueKey('login'), onLogin: () => _navigateToScreen('home'), onNavigateToRegister: () => _navigateToScreen('register'), onNavigateToForgotPassword: () => _navigateToScreen('forgotPassword'));
+        return LoginScreen(
+            key: const ValueKey('login'),
+            onLogin: () => _navigateToScreen('home'),
+            onNavigateToRegister: () => _navigateToScreen('register'),
+            onNavigateToForgotPassword: () =>
+                _navigateToScreen('forgotPassword'));
       case 'register':
-        return RegisterScreen(key: const ValueKey('register'), onRegister: () => _navigateToScreen('home'), onBackToLogin: () => _navigateToScreen('login'));
+        return RegisterScreen(
+            key: const ValueKey('register'),
+            onRegister: () => _navigateToScreen('home'),
+            onBackToLogin: () => _navigateToScreen('login'));
       case 'forgotPassword':
-        return ForgotPasswordScreen(key: const ValueKey('forgotPassword'), onBackToLogin: () => _navigateToScreen('login'));
+        return ForgotPasswordScreen(
+            key: const ValueKey('forgotPassword'),
+            onBackToLogin: () => _navigateToScreen('login'));
+      case 'resetPassword':
+        return ResetPasswordScreen(
+          key: const ValueKey('resetPassword'),
+          accessToken: _screenData['accessToken'] ?? '',
+          refreshToken: _screenData['refreshToken'] ?? '',
+          onBackToLogin: () => _navigateToScreen('login'),
+        );
       case 'home':
-        return HomeScreen(key: const ValueKey('home'), onNavigate: _navigateToScreen);
+        return HomeScreen(
+            key: const ValueKey('home'), onNavigate: _navigateToScreen);
       case 'photos':
-        return PhotosScreen(key: const ValueKey('photos'), onNavigate: _navigateToScreen, isPickerMode: _screenData.containsKey('isPickerMode') ? _screenData['isPickerMode'] : false);
+        return PhotosScreen(
+            key: const ValueKey('photos'),
+            onNavigate: _navigateToScreen,
+            isPickerMode: _screenData.containsKey('isPickerMode')
+                ? _screenData['isPickerMode']
+                : false);
       case 'ai':
-        return AIScreen(key: const ValueKey('ai'), onNavigate: _navigateToScreen);
+        return AIScreen(
+            key: const ValueKey('ai'), onNavigate: _navigateToScreen);
       case 'settings':
-        return SettingsScreen(key: const ValueKey('settings'), onNavigate: _navigateToScreen, onLogout: _handleLogout);
+        return SettingsScreen(
+            key: const ValueKey('settings'),
+            onNavigate: _navigateToScreen,
+            onLogout: _handleLogout);
       case 'userProfile':
-        return UserProfileScreen(key: const ValueKey('userProfile'), onNavigate: _navigateToScreen);
+        return UserProfileScreen(
+            key: const ValueKey('userProfile'), onNavigate: _navigateToScreen);
       case 'changePassword':
-        return ChangePasswordScreen(key: const ValueKey('changePassword'), onNavigate: _navigateToScreen);
+        return ChangePasswordScreen(
+            key: const ValueKey('changePassword'),
+            onNavigate: _navigateToScreen);
       case 'createPost':
-        return CreatePostScreen(key: const ValueKey('createPost'), onNavigate: _navigateToScreen);
+        return CreatePostScreen(
+            key: const ValueKey('createPost'), onNavigate: _navigateToScreen);
       case 'team':
-        return TeamScreen(key: const ValueKey('team'), onNavigate: _navigateToScreen);
+        return TeamScreen(
+            key: const ValueKey('team'), onNavigate: _navigateToScreen);
       case 'sponsors':
-        return SponsorsScreen(key: const ValueKey('sponsors'), onNavigate: _navigateToScreen);
+        return SponsorsScreen(
+            key: const ValueKey('sponsors'), onNavigate: _navigateToScreen);
       case 'appInfo':
-        return AppInfoScreen(key: const ValueKey('appInfo'), onNavigate: _navigateToScreen);
+        return AppInfoScreen(
+            key: const ValueKey('appInfo'), onNavigate: _navigateToScreen);
       case 'emergency':
-        return EmergencyLocationScreen(key: const ValueKey('emergency'), onNavigate: _navigateToScreen);
+        return EmergencyLocationScreen(
+            key: const ValueKey('emergency'), onNavigate: _navigateToScreen);
       case 'friends':
-        return FriendsScreen(key: const ValueKey('friends'), onNavigate: _navigateToScreen);
-      case 'aiLandmarkResult': 
+        return FriendsScreen(
+            key: const ValueKey('friends'), onNavigate: _navigateToScreen);
+      case 'aiLandmarkResult':
         return AiLandmarkResultScreen(
           key: const ValueKey('aiLandmarkResult'),
           onNavigate: _navigateToScreen,
-          markdownContent: _screenData['markdownContent'] as String? ?? '# Error\n\nCould not load content.',
+          markdownContent: _screenData['markdownContent'] as String? ??
+              '# Error\n\nCould not load content.',
         );
       default:
-        return WelcomeScreen(key: const ValueKey('default'), onLogin: () => _navigateToScreen('login'));
+        return WelcomeScreen(
+            key: const ValueKey('default'),
+            onLogin: () => _navigateToScreen('login'));
     }
   }
 
@@ -166,7 +211,8 @@ class _AppNavigatorState extends State<AppNavigator> {
     return Scaffold(
       body: PageTransitionSwitcher(
         duration: const Duration(milliseconds: 600),
-        transitionBuilder: (Widget child, Animation<double> primaryAnimation, Animation<double> secondaryAnimation) {
+        transitionBuilder: (Widget child, Animation<double> primaryAnimation,
+            Animation<double> secondaryAnimation) {
           return SharedAxisTransition(
             animation: primaryAnimation,
             secondaryAnimation: secondaryAnimation,

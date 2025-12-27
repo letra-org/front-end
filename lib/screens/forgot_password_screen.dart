@@ -29,6 +29,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    final appLocalizations = AppLocalizations.of(context)!;
+
     if (!_formKey.currentState!.validate() || _isLoading) {
       return;
     }
@@ -54,18 +56,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         final errorData = json.decode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorData['detail'] ?? 'Đã xảy ra lỗi'),
+            content: Text(
+                '${appLocalizations.get('generic_error')}${errorData['detail'] ?? response.statusCode}'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lỗi kết nối: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${appLocalizations.get('generic_error')}$e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -143,7 +148,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha((255*0.2).toInt()),
+            color: Colors.white.withAlpha((255 * 0.2).toInt()),
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -191,7 +196,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 decoration: InputDecoration(
                   hintText: 'email@example.com',
                   filled: true,
-                  fillColor: Colors.white.withAlpha((255*0.9).toInt()),
+                  fillColor: Colors.white.withAlpha((255 * 0.9).toInt()),
                   prefixIcon: const Icon(Icons.mail_outline),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -222,7 +227,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator()
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF1E88E5)),
+                          ),
+                        )
                       : Text(
                           appLocalizations.get('send_recovery_email_button'),
                           style: const TextStyle(
@@ -241,7 +254,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           child: Text(
             appLocalizations.get('back_to_login'),
             style: TextStyle(
-              color: Colors.white.withAlpha((255*0.9).toInt()),
+              color: Colors.white.withAlpha((255 * 0.9).toInt()),
               fontSize: 14,
               decoration: TextDecoration.underline,
             ),

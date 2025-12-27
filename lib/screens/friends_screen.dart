@@ -2,13 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart'; 
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:shimmer/shimmer.dart'; 
+import 'package:shimmer/shimmer.dart';
 
 import '../constants/api_config.dart';
 import '../l10n/app_localizations.dart';
-import '../providers/friend_request_provider.dart'; 
+import '../providers/friend_request_provider.dart';
 import '../widgets/bottom_navigation_bar.dart';
 import './pending_requests_screen.dart';
 import './chat_screen.dart';
@@ -58,7 +58,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final token = prefs.getString('token');
 
     if (token == null) {
-      _showSnackbar('Authentication token not found. Please log in again.', isError: true);
+      _showSnackbar('Authentication token not found. Please log in again.',
+          isError: true);
       if (mounted) setState(() => _isLoading = false);
       return;
     }
@@ -75,28 +76,110 @@ class _FriendsScreenState extends State<FriendsScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final List<dynamic> friendsData = json.decode(utf8.decode(response.bodyBytes));
+        final List<dynamic> friendsData =
+            json.decode(utf8.decode(response.bodyBytes));
+        final List<Map<String, dynamic>> friendsList = [];
+
+        for (var data in friendsData) {
+          final friendInfo = data['friend'];
+          final friendId = friendInfo['id']?.toString() ?? '';
+
+          // Initial friend data
+          final friendMap = {
+            'id': friendId,
+            'friendship_id': data['id']?.toString() ?? '',
+            'name': friendInfo['full_name']?.toString() ?? 'No Name',
+            'avatar_url': friendInfo['avatar_url']?.toString(),
+            'last_message': 'Loading...',
+            'last_message_time': '',
+          };
+          friendsList.add(friendMap);
+        }
+
         setState(() {
-          _allFriends = friendsData.map((data) {
-            final friendInfo = data['friend'];
-            return {
-              'id': friendInfo['id']?.toString() ?? '',
-              'name': friendInfo['full_name']?.toString() ?? 'No Name',
-              'avatar_url': friendInfo['avatar_url']?.toString(),
-              'location': 'Việt Nam',
-            };
-          }).toList();
+          _allFriends = friendsList;
           _filteredFriends = List.from(_allFriends);
           _isLoading = false;
         });
+
+        // Fetch last messages asynchronously for each friend
+        for (int i = 0; i < _allFriends.length; i++) {
+          _fetchLastMessage(_allFriends[i]['id'], token, i);
+        }
       } else {
-        throw Exception('Failed to load friends. Status code: ${response.statusCode}');
+        throw Exception(
+            'Failed to load friends. Status code: ${response.statusCode}');
       }
     } catch (e) {
       if (mounted) {
-        _showSnackbar('An error occurred while fetching friends: ${e.toString()}', isError: true);
+        _showSnackbar(
+            'An error occurred while fetching friends: ${e.toString()}',
+            isError: true);
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _fetchLastMessage(
+      String friendId, String token, int index) async {
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.getMessageHistory(friendId)),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> messages =
+            json.decode(utf8.decode(response.bodyBytes));
+        if (messages.isNotEmpty) {
+          final lastMsg = messages.last; // Assuming last in list is latest
+          if (mounted) {
+            setState(() {
+              _allFriends[index]['last_message'] = lastMsg['content'] ?? '';
+              _allFriends[index]['last_message_time'] =
+                  lastMsg['created_at'] ?? '';
+              // Also update filtered list if it contains this friend
+              int filteredIdx =
+                  _filteredFriends.indexWhere((f) => f['id'] == friendId);
+              if (filteredIdx != -1) {
+                _filteredFriends[filteredIdx]['last_message'] =
+                    lastMsg['content'] ?? '';
+                _filteredFriends[filteredIdx]['last_message_time'] =
+                    lastMsg['created_at'] ?? '';
+              }
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _allFriends[index]['last_message'] = 'Chưa có tin nhắn';
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching last message for $friendId: $e");
+    }
+  }
+
+  String _formatMessageTime(String? timestamp) {
+    if (timestamp == null || timestamp.isEmpty) return '';
+    try {
+      final DateTime date = DateTime.parse(timestamp).toLocal();
+      final DateTime now = DateTime.now();
+
+      if (date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day) {
+        return "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+      } else {
+        final diff = now.difference(date).inDays;
+        if (diff == 1) return "Hôm qua";
+        if (diff < 7) return "${date.weekday}"; // Could map to Vietnamese days
+        return "${date.day}/${date.month}";
+      }
+    } catch (e) {
+      return '';
     }
   }
 
@@ -120,6 +203,67 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
+  Future<void> _confirmUnfriend(String friendshipId, String name) async {
+    final appLocalizations = AppLocalizations.of(context)!;
+    final bool? result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(appLocalizations.get('unfriend_confirm_title')),
+        content: Text(appLocalizations.get('unfriend_confirm_message')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(appLocalizations.get('no_label')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              appLocalizations.get('yes_label'),
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      _unfriend(friendshipId);
+    }
+  }
+
+  Future<void> _unfriend(String friendshipId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final appLocalizations = AppLocalizations.of(context)!;
+
+    if (token == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.rejectFriendRequest),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'friendship_id': int.tryParse(friendshipId) ?? 0}),
+      );
+
+      if (response.statusCode == 200) {
+        _showSnackbar(appLocalizations.get('unfriend_success'));
+        _fetchFriends();
+      } else {
+        _showSnackbar('Failed to unfriend: ${response.statusCode}',
+            isError: true);
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      _showSnackbar('Error: $e', isError: true);
+      setState(() => _isLoading = false);
+    }
+  }
+
   void _showAddFriendDialog() {
     showModalBottomSheet(
       context: context,
@@ -139,7 +283,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final appLocalizations = AppLocalizations.of(context)!;
-    final hasPendingRequests = context.watch<FriendRequestProvider>().pendingRequestCount > 0;
+    final hasPendingRequests =
+        context.watch<FriendRequestProvider>().pendingRequestCount > 0;
 
     return Scaffold(
       body: Column(
@@ -154,14 +299,18 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   children: [
                     Text(
                       appLocalizations.get('friends_title'),
-                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600),
                     ),
                     const Spacer(),
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.notifications, color: Colors.white),
+                          icon: const Icon(Icons.notifications,
+                              color: Colors.white),
                           onPressed: _navigateToPendingRequests,
                           tooltip: 'Pending Requests',
                         ),
@@ -170,8 +319,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             top: 8,
                             right: 8,
                             child: Container(
-                              width: 10, height: 10,
-                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                  color: Colors.red, shape: BoxShape.circle),
                             ),
                           ),
                       ],
@@ -198,7 +349,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -206,7 +359,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
             child: _isLoading
                 ? _buildFriendsLoading(context)
                 : _filteredFriends.isEmpty
-                    ? Center(child: Text(appLocalizations.get('no_friends_found')))
+                    ? Center(
+                        child: Text(appLocalizations.get('no_friends_found')))
                     : ListView.builder(
                         itemCount: _filteredFriends.length,
                         itemBuilder: (context, index) {
@@ -214,11 +368,28 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           final avatarUrl = friend['avatar_url'] as String?;
                           final name = friend['name'] as String;
                           final friendId = friend['id'] as String;
+                          final lastMsg = friend['last_message'] ?? '';
+                          final lastTime =
+                              _formatMessageTime(friend['last_message_time']);
 
                           return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
                             child: ListTile(
                               onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatScreen(
+                                      friendId: friendId,
+                                      friendName: name,
+                                      friendAvatar: avatarUrl,
+                                    ),
+                                  ),
+                                );
+                              },
+                              leading: GestureDetector(
+                                onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -230,39 +401,93 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     ),
                                   );
                                 },
-                                leading: CircleAvatar(
+                                child: CircleAvatar(
                                   backgroundColor: const Color(0xFF1E88E5),
-                                  backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty) ? NetworkImage(avatarUrl) : null,
-                                  child: (avatarUrl == null || avatarUrl.isEmpty)
-                                      ? Text(
-                                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                        )
+                                  backgroundImage: (avatarUrl != null &&
+                                          avatarUrl.isNotEmpty)
+                                      ? NetworkImage(avatarUrl)
                                       : null,
+                                  child:
+                                      (avatarUrl == null || avatarUrl.isEmpty)
+                                          ? Text(
+                                              name.isNotEmpty
+                                                  ? name[0].toUpperCase()
+                                                  : '?',
+                                              style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold),
+                                            )
+                                          : null,
                                 ),
-                                title: Text(name),
-                                subtitle: Row(
-                                  children: [
-                                    const Icon(Icons.location_on, size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(friend['location'] ?? 'Việt Nam'),
-                                  ],
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.message),
-                                  onPressed: () {
+                              ),
+                              title: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(name,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  Text(lastTime,
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                              subtitle: Text(
+                                lastMsg,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              trailing: PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert),
+                                onSelected: (value) {
+                                  if (value == 'unfriend') {
+                                    _confirmUnfriend(
+                                        friend['friendship_id'], name);
+                                  } else if (value == 'profile') {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ChatScreen(
+                                        builder: (context) =>
+                                            FriendProfileScreen(
                                           friendId: friendId,
                                           friendName: name,
                                           friendAvatar: avatarUrl,
                                         ),
                                       ),
                                     );
-                                  },
-                                ),
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'profile',
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.person, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(appLocalizations
+                                            .get('personal_info_title')),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'unfriend',
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.person_remove,
+                                            color: Colors.red, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          appLocalizations
+                                              .get('unfriend_button'),
+                                          style: const TextStyle(
+                                              color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -361,7 +586,7 @@ class _UserSearchSheetState extends State<UserSearchSheet> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     try {
-        await http.post(
+      await http.post(
         Uri.parse(ApiConfig.addFriend),
         headers: {
           'Authorization': 'Bearer $token',
@@ -417,7 +642,8 @@ class _UserSearchSheetState extends State<UserSearchSheet> {
                           title: Text(user['full_name'] ?? ''),
                           subtitle: Text(user['username'] ?? ''),
                           trailing: ElevatedButton(
-                            onPressed: () => _sendFriendRequest(user['id'].toString()),
+                            onPressed: () =>
+                                _sendFriendRequest(user['id'].toString()),
                             child: const Text('Add'),
                           ),
                         );

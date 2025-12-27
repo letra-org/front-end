@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'single_purpose_camera_screen.dart';
 import 'package:intl/intl.dart';
@@ -129,6 +130,53 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _handleAvatarChange(BuildContext context) async {
+    final appLocalizations = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Text(
+                  appLocalizations.get('image_source_title'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: Text(appLocalizations.get('device_gallery')),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFromGallery();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: Text(appLocalizations.get('app_photos')),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takePhoto(context);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _takePhoto(BuildContext context) async {
     final XFile? confirmedImage = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -137,6 +185,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     if (confirmedImage != null) {
       _uploadAvatar(confirmedImage);
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        _uploadAvatar(image);
+      }
+    } catch (e) {
+      print("Error picking image from gallery: $e");
     }
   }
 
@@ -158,8 +224,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final url = Uri.parse(ApiConfig.updateUserAvatar);
       final request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $token';
-      request.files
-          .add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files.add(await http.MultipartFile.fromPath(
+        'avatar',
+        imageFile.path,
+        contentType: MediaType('image', 'jpeg'),
+      ));
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -187,6 +256,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               content: Text(appLocalizations.get('avatar_update_success'))),
         );
       } else {
+        print("UPLOAD AVATAR ERROR: ${response.statusCode} - ${response.body}");
         throw Exception(
             '${appLocalizations.get('upload_failed')}${response.statusCode}');
       }

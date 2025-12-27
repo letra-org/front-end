@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'https://qfs40xd9-8000.asse.devtunnels.ms';
 
   // Auth
   static const String login = '$baseUrl/auth/login';
@@ -30,16 +30,26 @@ class ApiConfig {
   // AI & Recommendations
   static const String recommendNew = '$baseUrl/recommend/new';
   static const String recommendThreads = '$baseUrl/recommend/threads';
-  static String recommendChat(String threadId) => '$baseUrl/recommend/$threadId';
-  static String recommendDelete(String threadId) => '$baseUrl/recommend/$threadId';
-  static String recommendFeedback(String threadId) => '$baseUrl/recommend/$threadId/feedback';
-  static String recommendHistory(String threadId) => '$baseUrl/recommend/$threadId';
+  static String recommendChat(String threadId) =>
+      '$baseUrl/recommend/$threadId';
+  static String recommendDelete(String threadId) =>
+      '$baseUrl/recommend/$threadId';
+  static String recommendFeedback(String threadId) =>
+      '$baseUrl/recommend/$threadId/feedback';
+  static String recommendHistory(String threadId) =>
+      '$baseUrl/recommend/$threadId';
 
   // Landmark Detection
   static const String landmarkDetect = '$baseUrl/landmark/detect';
   static const String landmarkDetectUpload = '$baseUrl/landmark/detect/upload';
 
+  // Media & AI Features
+  static const String generateCaption = '$baseUrl/media/caption';
+  static const String createAlbumStory = '$baseUrl/media/album';
+
   // Friend Chat (Placeholders)
-  static String getMessageHistory(String friendId) => '$baseUrl/messages/$friendId';
-  static const String friendChatWebSocket = 'ws://127.0.0.1:8000/ws/chat'; // Placeholder URL
+  static String getMessageHistory(String friendId) =>
+      '$baseUrl/messages/$friendId';
+  static const String friendChatWebSocket =
+      'ws://qfs40xd9-8000.asse.devtunnels.ms//ws/chat'; // Using 127.0.0.1 for better compatibility
 }
