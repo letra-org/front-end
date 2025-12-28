@@ -19,12 +19,6 @@ class AppLocalizations {
       'show_less': '<< Show less',
       'show_more': '... Show more >>',
 
-      // Exit Dialog
-      'exit_dialog_title': 'Leaving so soon? 🥺',
-      'exit_dialog_content': 'Are you sure you want to exit Letra?',
-      'exit_dialog_yes': 'Yes, exit',
-      'exit_dialog_no': 'Stay',
-
       // Emergency Screen
       'emergency_warning': 'This feature should only be used in an emergency',
       'current_location_label': 'Your Current Location',
@@ -47,19 +41,29 @@ class AppLocalizations {
       'save_success': 'Photo saved to gallery!',
       'save_error': 'Failed to save photo.',
       'save_general_error': 'Error saving photo: ',
+      'albums_tab': 'Albums',
+      'library_tab': 'Library',
+      'create_album': 'Create Album',
+      'album_name_hint': 'Enter album name',
+      'delete_album_confirm': 'Are you sure you want to delete this album?',
+      'add_to_album': 'Add to Album',
+      'album_empty': 'This album is empty',
+      'select_photos': 'Select Photos',
+      'album_created_success': 'Album created successfully!',
+      'already_in_album': 'Photo is already in this album',
 
       // Image Source
       'image_source_title': 'Choose Image Source',
       'device_gallery': 'Device Gallery',
       'app_photos': 'App Photos',
-
-      // Create Post Screen
       'create_post_title': 'Create Post',
       'post_button': 'Post',
       'title_label': 'Title',
       'location_label': 'Location (e.g., Ha Long Bay)',
       'caption_label': 'What are you thinking?',
       'add_image_button': 'Add Image/Video',
+      'add_image_tooltip': 'Add Image',
+      'add_video_tooltip': 'Add Video',
 
       // Sort Options
       'sort_by': 'Sort by',
@@ -77,33 +81,9 @@ class AppLocalizations {
 
       // AI Screen
       'ai_assistant_title': 'AI Travel Assistant',
-      'ai_assistant_subtitle': 'Smart Turtle 🇻🇳',
-      'ai_welcome_message':
-          'Hello! I am a Vietnam travel AI assistant 🐢\nAsk me about tourist destinations!',
-      'ai_input_hint': 'Ask AI about Vietnam travel...',
-      'ai_response_halong':
-          '🌊 Halong Bay is a world natural heritage site in Quang Ninh. You should go from March to May or September to November for the best weather. Don\'t forget to enjoy fresh seafood!',
-      'ai_response_sapa':
-          '🏔️ Sapa in Lao Cai is famous for its beautiful terraced fields, best seen in September-October. The temperature is cool year-round, remember to bring warm clothes! You should try thang co and salmon here.',
-      'ai_response_phuquoc':
-          '🏝️ Phu Quoc - the pearl island of Vietnam! The ideal time is from November to March. Visit Sao Beach, Long Beach, and don\'t miss the Phu Quoc night market with delicious fresh seafood!',
-      'ai_response_hoian':
-          '🏮 Hoi An ancient town is beautiful at night with sparkling lanterns. You should go on the full moon day to release flower lanterns. Try Cao Lau, Mi Quang, and white rose dumplings!',
-      'ai_response_danang':
-          '🌉 Da Nang has the famous Golden Bridge, and My Khe beach is one of the most beautiful in Vietnam. Go from March to August for swimming. You must try Mi Quang and fish cake noodles!',
-      'ai_response_nhatrang':
-          '🏖️ Nha Trang - a beach paradise! Go snorkeling to see coral at Hon Mun, take a mud bath, and enjoy delicious fresh seafood. The best time to visit is from March to September!',
-      'ai_response_dalat':
-          '🌸 Da Lat - the city of thousands of flowers! Cool weather all year round. Visit Xuan Huong Lake, Datanla Waterfall, and don\'t forget to take photos at the old train station. Try soy milk and grilled rice paper!',
-      'ai_response_weather':
-          '🌤️ North: Autumn (Sept-Nov) is the best\n🌞 Central: Feb-Aug to avoid storms\n☀️ South: Nov-Apr is dry and easy to travel\n\nWhere do you want to go for more details?',
-      'ai_response_food':
-          '🍜 Famous dishes:\n• Hanoi: Pho, Bun Cha, Banh Cuon\n• Da Nang: Mi Quang, Bun Cha Ca\n• Hoi An: Cao Lau, White Rose Dumplings\n• Saigon: Banh Mi, Hu Tieu, Com Tam\nWhere are you for specific suggestions?',
-      'ai_response_cost':
-          '💰 Estimated cost (1 day):\n• Low budget: 300-500k VND\n• Medium: 800k-1.5m VND\n• High-end: 2-5m VND\n\nWhich location do you want details for?',
-      'ai_response_default':
-          '🐢 To help you better, please ask about:\n• Specific tourist destinations\n• Weather and seasons\n• Local dishes\n• Costs and itineraries\nExample: \"When should I go to Sapa?\"',
       'ai_delete_success': 'Delete done!',
+      'ai_conversation': 'Conversation',
+      'ai_messages': 'messages',
 
       // Friends Screen
       'friends_title': 'Friends',
@@ -259,18 +239,20 @@ class AppLocalizations {
       'location_permission_denied':
           'Location permission is required for this feature',
       'location_permission_settings': 'Please enable location in settings',
+      //Create Posts Screen
+      'post_created_successfully': 'Post created successfully',
+      'post_creation_failed': 'Post creation failed',
+      'delete_post_confirm_title': 'Delete Post',
+      'delete_post_confirm_message':
+          'Are you sure you want to delete this post?',
+      'delete_post_success': 'Post deleted successfully',
+      'delete_post_failed': 'Failed to delete post',
     },
     'vi': {
       // General
       'loading': 'Đang tải...',
       'show_less': '<< Thu gọn',
       'show_more': '... Xem thêm >>',
-
-      // Exit Dialog
-      'exit_dialog_title': 'Bạn đã muốn rời đi rồi sao? 🥺',
-      'exit_dialog_content': 'Bạn có chắc muốn thoát khỏi Letra không?',
-      'exit_dialog_yes': 'Thoát',
-      'exit_dialog_no': 'Ở lại',
 
       // Emergency Screen
       'emergency_warning':
@@ -295,11 +277,21 @@ class AppLocalizations {
       'save_success': 'Đã lưu ảnh vào thư viện!',
       'save_error': 'Không thể lưu ảnh.',
       'save_general_error': 'Lỗi khi lưu ảnh: ',
+      'albums_tab': 'Album',
+      'library_tab': 'Thư viện',
+      'create_album': 'Tạo Album',
+      'album_name_hint': 'Nhập tên album',
+      'delete_album_confirm': 'Bạn có chắc muốn xóa album này không?',
+      'add_to_album': 'Thêm vào Album',
+      'album_empty': 'Album này đang trống',
+      'select_photos': 'Chọn ảnh',
+      'album_created_success': 'Đã tạo album thành công!',
+      'already_in_album': 'Ảnh đã có trong album này',
 
       // Image Source
       'image_source_title': 'Chọn nguồn ảnh',
-      'device_gallery': 'Thư viện máy',
-      'app_photos': 'Ảnh đã chụp từ ứng dụng',
+      'device_gallery': 'Thư viện thiết bị',
+      'app_photos': 'Ảnh trong ứng dụng',
 
       // Create Post Screen
       'create_post_title': 'Tạo bài viết',
@@ -308,6 +300,8 @@ class AppLocalizations {
       'location_label': 'Địa điểm (ví dụ: Vịnh Hạ Long)',
       'caption_label': 'Bạn đang nghĩ gì?',
       'add_image_button': 'Thêm ảnh/video',
+      'add_image_tooltip': 'Thêm ảnh',
+      'add_video_tooltip': 'Thêm video',
 
       // Sort Options
       'sort_by': 'Sắp xếp theo',
@@ -325,33 +319,9 @@ class AppLocalizations {
 
       // AI Screen
       'ai_assistant_title': 'AI Trợ lý Du lịch',
-      'ai_assistant_subtitle': 'Rùa thông minh 🇻🇳',
-      'ai_welcome_message':
-          'Xin chào! Tôi là trợ lý AI du lịch Việt Nam 🐢\nHãy hỏi tôi về các địa điểm du lịch nhé!',
-      'ai_input_hint': 'Hỏi AI về du lịch Việt Nam...',
-      'ai_response_halong':
-          '🌊 Vịnh Hạ Long là di sản thiên nhiên thế giới tại Quảng Ninh. Bạn nên đi từ tháng 3-5 hoặc 9-11 để thời tiết đẹp nhất. Đừng quên thưởng thức hải sản tươi sống nhé!',
-      'ai_response_sapa':
-          '🏔️ Sapa ở Lào Cai nổi tiếng với ruộng bậc thang đẹp nhất vào tháng 9-10. Nhiệt độ mát mẻ quanh năm, nhớ mang áo ấm! Nên thử món thắng cố và cá hồi ở đây.',
-      'ai_response_phuquoc':
-          '🏝️ Phú Quốc - đảo ngọc của Việt Nam! Thời điểm lý tưởng là 11-3. Ghé thăm bãi Sao, bãi Dài, và đừng bỏ lỡ chợ đêm Phú Quốc với hải sản tươi ngon!',
-      'ai_response_hoian':
-          '🏮 Hội An phố cổ thật đẹp vào buổi tối với đèn lồng rực rỡ. Nên đi vào rằm để thả đèn hoa đăng. Thử cao lầu, mì Quảng và bánh bao vạc nhé!',
-      'ai_response_danang':
-          '🌉 Đà Nẵng có Cầu Vàng nổi tiếng, bãi biển Mỹ Khê đẹp nhất Việt Nam. Đi từ tháng 3-8 để tắm biển. Phải thử mì Quảng, bún chả cá!',
-      'ai_response_nhatrang':
-          '🏖️ Nha Trang - thiên đường biển! Lặn biển ngắm san hô ở Hòn Mun, tắm bùn khoáng, thưởng thức hải sản tươi ngon. Đi từ tháng 3-9 nhé!',
-      'ai_response_dalat':
-          '🌸 Đà Lạt - thành phố ngàn hoa! Thời tiết mát mẻ quanh năm. Ghé hồ Xuân Hương, thác Datanla, và nhớ chụp ảnh tại nhà ga cũ. Thử sữa đậu nành, bánh tráng nướng nhé!',
-      'ai_response_weather':
-          '🌤️ Miền Bắc: mùa thu (9-11) đẹp nhất\n🌞 Miền Trung: 2-8 tránh mưa bão\n☀️ Miền Nam: 11-4 khô ráo, dễ đi\n\nBạn muốn đi đâu để tôi tư vấn chi tiết hơn?',
-      'ai_response_food':
-          '🍜 Món ăn nổi tiếng:\n• Hà Nội: Phở, bún chả, bánh cuốn\n• Đà Nẵng: Mì Quảng, bún chả cá\n• Hội An: Cao lầu, bánh bao vạc\n• Sài Gòn: Bánh mì, hủ tiếu, cơm tấm\n\nBạn đang ở đâu để tôi gợi ý cụ thể?',
-      'ai_response_cost':
-          '💰 Chi phí ước tính (1 ngày):\n• Ngân sách thấp: 300-500k VNĐ\n• Trung bình: 800k-1.5tr VNĐ\n• Cao cấp: 2-5tr VNĐ\n\nBạn muốn biết chi tiết cho địa điểm nào?',
-      'ai_response_default':
-          '🐢 Để tôi giúp bạn tốt hơn, hãy hỏi về:\n• Địa điểm du lịch cụ thể\n• Thời tiết và mùa đi\n• Món ăn địa phương\n• Chi phí và lịch trình\nVí dụ: \"Nên đi Sapa vào tháng mấy?\"',
       'ai_delete_success': 'Đã xoá thành công',
+      'ai_conversation': 'Cuộc trò chuyện',
+      'ai_messages': 'tin nhắn',
 
       // Friends Screen
       'friends_title': 'Bạn bè',
@@ -507,6 +477,14 @@ class AppLocalizations {
       'location_permission_denied':
           'Cần quyền truy cập vị trí để sử dụng tính năng này',
       'location_permission_settings': 'Vui lòng bật vị trí trong cài đặt',
+      //Create Posts Screen
+      'post_created_successfully': 'Bài viết đã được tạo thành công',
+      'post_creation_failed': 'Tạo bài viết thất bại',
+      'delete_post_confirm_title': 'Xóa bài viết',
+      'delete_post_confirm_message':
+          'Bạn có chắc chắn muốn xóa bài viết này không?',
+      'delete_post_success': 'Xóa bài viết thành công',
+      'delete_post_failed': 'Xóa bài viết thất bại'
     },
   };
 

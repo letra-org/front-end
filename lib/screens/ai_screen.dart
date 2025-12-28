@@ -25,6 +25,7 @@ class _AIScreenState extends State<AIScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _messages = [];
   bool _isSendingMessage = false;
+  String? _currentChatTitle;
 
   @override
   void initState() {
@@ -63,6 +64,13 @@ class _AIScreenState extends State<AIScreen> {
           _threads = List<Map<String, dynamic>>.from(data['threads']);
           _isLoadingThreads = false;
         });
+        // Fetch titles for threads that don't have one
+        for (var thread in _threads) {
+          final String title = thread['title'] ?? '';
+          if (title.isEmpty || title.startsWith('Conversation #')) {
+            _fetchThreadTitle(thread['id']);
+          }
+        }
       } else {
         throw Exception('Failed to load threads: ${response.statusCode}');
       }
@@ -93,7 +101,15 @@ class _AIScreenState extends State<AIScreen> {
       if (!mounted) return;
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(utf8.decode(response.bodyBytes));
-        _startChat(data['thread_id']);
+        final String newThreadId = data['thread_id'];
+        setState(() {
+          _threads.insert(0, {
+            'id': newThreadId,
+            'title': '',
+            'message_count': 0,
+          });
+        });
+        _startChat(newThreadId);
       } else {
         throw Exception('Failed to create new thread: ${response.statusCode}');
       }
@@ -133,10 +149,42 @@ class _AIScreenState extends State<AIScreen> {
     }
   }
 
+  Future<void> _fetchThreadTitle(String threadId) async {
+    final token = await _getToken();
+    if (token == null) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse(ApiConfig.recommendHistory(threadId)),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (mounted && response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
+        final List<dynamic> historyMessages = data['messages'] ?? [];
+        final firstUserMsg = historyMessages.firstWhere(
+          (msg) => msg['role'] == 'user',
+          orElse: () => null,
+        );
+        if (firstUserMsg != null) {
+          setState(() {
+            final threadIndex = _threads.indexWhere((t) => t['id'] == threadId);
+            if (threadIndex != -1) {
+              _threads[threadIndex]['first_message'] =
+                  firstUserMsg['content']?.toString();
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Silently fail for individual title fetches
+    }
+  }
+
   void _startChat(String threadId) {
     setState(() {
       _isListView = false;
       _selectedThreadId = threadId;
+      _currentChatTitle = null; // Reset title for new chat view
       _messages.clear();
       _fetchChatHistory(threadId);
     });
@@ -194,6 +242,26 @@ class _AIScreenState extends State<AIScreen> {
         setState(() {
           _messages.clear();
           _messages.addAll(formattedMessages.reversed);
+
+          // Get chat title from the first user message
+          try {
+            final firstUserMsg = historyMessages.firstWhere(
+              (msg) => msg['role'] == 'user',
+              orElse: () => null,
+            );
+            if (firstUserMsg != null) {
+              _currentChatTitle = firstUserMsg['content']?.toString();
+
+              // Update title in the threads list too
+              final threadIndex =
+                  _threads.indexWhere((t) => t['id'] == threadId);
+              if (threadIndex != -1) {
+                _threads[threadIndex]['first_message'] = _currentChatTitle;
+              }
+            }
+          } catch (e) {
+            // Fallback if history is empty or structure differs
+          }
         });
       } else if (mounted) {
         throw Exception('Failed to load chat history: ${response.statusCode}');
@@ -223,7 +291,18 @@ class _AIScreenState extends State<AIScreen> {
     _messageController.clear();
 
     _addTextMessage(userMessage, isUser: true);
-    setState(() => _isSendingMessage = true);
+    setState(() {
+      _isSendingMessage = true;
+      // Use the first user message as the title if not set
+      if (_currentChatTitle == null) {
+        _currentChatTitle = userMessage;
+        final threadIndex =
+            _threads.indexWhere((t) => t['id'] == _selectedThreadId);
+        if (threadIndex != -1) {
+          _threads[threadIndex]['first_message'] = userMessage;
+        }
+      }
+    });
 
     final token = await _getToken();
     if (token == null) {
@@ -338,8 +417,10 @@ class _AIScreenState extends State<AIScreen> {
           title: Text(
               _isListView
                   ? appLocalizations.get('ai_assistant_title')
-                  : appLocalizations.get('chat_title'),
-              style: const TextStyle(color: Colors.white)),
+                  : (_currentChatTitle ?? appLocalizations.get('chat_title')),
+              style: const TextStyle(color: Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis),
           backgroundColor: const Color(0xFF1E88E5),
           actions: _isListView
               ? [
@@ -400,8 +481,6 @@ class _AIScreenState extends State<AIScreen> {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          subtitle: Text(
-              '${thread['message_count'] ?? 0} ${appLocalizations.get('ai_messages')}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
             onPressed: () => _confirmDelete(thread['id']),

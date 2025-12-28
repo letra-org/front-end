@@ -6,12 +6,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 import '../constants/api_config.dart';
 import '../l10n/app_localizations.dart';
+import 'photos_screen.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  final Function(String) onNavigate;
+  final Function(String, {Map<String, dynamic> data}) onNavigate;
 
   const CreatePostScreen({super.key, required this.onNavigate});
 
@@ -21,10 +24,9 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _textController = TextEditingController();
-  List<File> _imageFiles = [];
+  File? _imageFile;
   bool _isLoading = false;
   bool _isAiGenerating = false;
-  bool _isStoryGenerating = false;
 
   String? _avatarUrl;
   String _userName = 'User';
@@ -39,14 +41,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     try {
       final directory = await getApplicationDocumentsDirectory();
       final file = File('${directory.path}/data/userdata.js');
-      print("CREATE_POST: Reading from ${file.path}");
       if (await file.exists()) {
         final content = await file.readAsString();
-        print("CREATE_POST: Content: $content");
         final data = json.decode(content);
         final user = data['user'] as Map<String, dynamic>?;
-
-        print("CREATE_POST: Parsed user: $user");
 
         if (user != null && mounted) {
           setState(() {
@@ -54,36 +52,74 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             _userName =
                 user['full_name'] as String? ?? user['username'] ?? 'User';
           });
-          print("CREATE_POST: Set state done: $_userName, $_avatarUrl");
-        } else {
-          print("CREATE_POST: User is null or not mounted");
         }
-      } else {
-        print("CREATE_POST: File does not exist");
       }
     } catch (e) {
       print("Lỗi khi tải dữ liệu người dùng trên create_post_screen: $e");
     }
   }
 
-  Future<void> _pickImages() async {
-    final ImagePicker picker = ImagePicker();
-    try {
-      final List<XFile> pickedFiles = await picker.pickMultiImage();
-      if (pickedFiles.isNotEmpty) {
-        setState(() {
-          _imageFiles.addAll(pickedFiles.map((x) => File(x.path)));
-        });
-      }
-    } catch (e) {
-      _showSnackbar('Failed to pick images: $e', isError: true);
-    }
+  Future<void> _pickImage() async {
+    final appLocalizations = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: Text(appLocalizations.get('device_gallery')),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final ImagePicker picker = ImagePicker();
+                  try {
+                    final XFile? pickedFile =
+                        await picker.pickImage(source: ImageSource.gallery);
+                    if (pickedFile != null) {
+                      setState(() {
+                        _imageFile = File(pickedFile.path);
+                      });
+                    }
+                  } catch (e) {
+                    _showSnackbar(appLocalizations.get('pick_image_error'), isError: true);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.collections),
+                title: Text(appLocalizations.get('app_photos')),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final File? pickedPhoto = await Navigator.push<File>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PhotosScreen(
+                        onNavigate: widget.onNavigate,
+                        isPickerMode: true,
+                      ),
+                    ),
+                  );
+
+                  if (pickedPhoto != null) {
+                    setState(() {
+                      _imageFile = pickedPhoto;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _generateAICaption() async {
     final appLocalizations = AppLocalizations.of(context)!;
 
-    if (_imageFiles.isEmpty) {
+    if (_imageFile == null) {
       _showSnackbar(appLocalizations.get('no_image_selected'), isError: true);
       return;
     }
@@ -105,12 +141,25 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
 
-      request.files.add(
-        await http.MultipartFile.fromPath(
+      http.MultipartFile multipartFile;
+      try {
+        final mimeType = lookupMimeType(_imageFile!.path);
+        final contentType =
+            mimeType != null ? MediaType.parse(mimeType) : null;
+        multipartFile = await http.MultipartFile.fromPath(
           'file', // Field name from the API spec
-          _imageFiles.first.path,
-        ),
-      );
+          _imageFile!.path,
+          contentType: contentType,
+        );
+      } catch (e) {
+        print('Error setting content type for AI caption: $e');
+        multipartFile = await http.MultipartFile.fromPath(
+          'file', // Field name from the API spec
+          _imageFile!.path,
+        );
+      }
+
+      request.files.add(multipartFile);
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -131,7 +180,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         setState(() {
           _textController.text = finalContent;
         });
-        _showSnackbar('AI generated a caption for you! ✨');
+        _showSnackbar(appLocalizations.get('ai_caption_success'));
       } else {
         throw Exception(
             'Failed to generate caption. Status: ${response.statusCode}');
@@ -146,90 +195,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
   }
 
-  Future<void> _generateAIAlbumStory() async {
-    final appLocalizations = AppLocalizations.of(context)!;
-
-    if (_imageFiles.length < 2) {
-      _showSnackbar(appLocalizations.get('select_multiple_images'),
-          isError: true);
-      return;
-    }
-
-    setState(() => _isStoryGenerating = true);
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    if (token == null) {
-      _showSnackbar(appLocalizations.get('auth_error'), isError: true);
-      setState(() => _isStoryGenerating = false);
-      return;
-    }
-
-    try {
-      final request =
-          http.MultipartRequest('POST', Uri.parse(ApiConfig.createAlbumStory));
-      request.headers['Authorization'] = 'Bearer $token';
-      request.headers['Accept'] = 'application/json';
-
-      for (var file in _imageFiles) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'files', // Field name from the API spec (array)
-            file.path,
-          ),
-        );
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data =
-            json.decode(utf8.decode(response.bodyBytes));
-
-        final String tripTitle = data['trip_title'] ?? 'My Trip';
-        final String summary = data['overall_summary'] ?? '';
-        final List<dynamic> timeline = data['timeline'] ?? [];
-
-        StringBuffer sb = StringBuffer();
-        sb.writeln('📍 $tripTitle');
-        sb.writeln('\n$summary');
-
-        if (timeline.isNotEmpty) {
-          sb.writeln('\n--- STORY TIMELINE ---');
-          for (var item in timeline) {
-            sb.writeln('\n🕒 ${item['time_of_day'] ?? ''}');
-            if (item['location_guess'] != null) {
-              sb.writeln('🗺️ ${item['location_guess']}');
-            }
-            sb.writeln('${item['story_caption'] ?? ''}');
-          }
-        }
-
-        setState(() {
-          _textController.text = sb.toString();
-        });
-        _showSnackbar('AI has composed your travel diary! 📖✨');
-      } else {
-        throw Exception(
-            'Failed to generate story. Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      _showSnackbar('${appLocalizations.get('ai_album_story_error')}: $e',
-          isError: true);
-    } finally {
-      if (mounted) {
-        setState(() => _isStoryGenerating = false);
-      }
-    }
-  }
-
   Future<void> _handlePost() async {
-    if (_textController.text.trim().isEmpty && _imageFiles.isEmpty) {
-      _showSnackbar('Please add content or an image to post.', isError: true);
+    final appLocalizations = AppLocalizations.of(context)!;
+    if (_textController.text.trim().isEmpty && _imageFile == null) {
+      _showSnackbar(appLocalizations.get('create_post_validation_error'), isError: true);
       return;
     }
 
@@ -239,7 +208,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final token = prefs.getString('token');
 
     if (token == null) {
-      _showSnackbar('Authentication error. Please log in again.',
+      _showSnackbar(appLocalizations.get('auth_error'),
           isError: true);
       setState(() => _isLoading = false);
       return;
@@ -258,14 +227,30 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         request.fields['content'] = _textController.text;
       }
 
-      // Add media files if selected
-      for (var file in _imageFiles) {
-        request.files.add(
-          await http.MultipartFile.fromPath(
-            'media', // Adjust if API expects an array name like 'media[]'
-            file.path,
-          ),
-        );
+      // Add image file if selected
+      if (_imageFile != null) {
+        try {
+          final mimeType = lookupMimeType(_imageFile!.path);
+          final contentType =
+              mimeType != null ? MediaType.parse(mimeType) : null;
+
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'media',
+              _imageFile!.path,
+              contentType: contentType,
+            ),
+          );
+        } catch (e) {
+          print('Error setting content type: $e');
+          // Fallback if mime detection fails
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'media',
+              _imageFile!.path,
+            ),
+          );
+        }
       }
 
       final response = await request.send();
@@ -273,7 +258,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       if (!mounted) return;
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        _showSnackbar('Post created successfully!');
+        _showSnackbar(appLocalizations.get('post_created_successfully'));
         // Navigate back to home or another screen after a short delay
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) widget.onNavigate('home');
@@ -284,7 +269,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             'Failed to create post. Status: ${response.statusCode}, Body: $responseBody');
       }
     } catch (e) {
-      _showSnackbar(e.toString(), isError: true);
+      _showSnackbar(appLocalizations.get('create_post_error'), isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -369,15 +354,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             const SizedBox(height: 8),
             const SizedBox(height: 8),
-            if (_imageFiles.isNotEmpty)
+            if (_imageFile != null)
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   TextButton.icon(
-                    onPressed: _isAiGenerating || _isStoryGenerating
-                        ? null
-                        : _generateAICaption,
+                    onPressed: _isAiGenerating ? null : _generateAICaption,
                     icon: _isAiGenerating
                         ? const SizedBox(
                             width: 16,
@@ -385,109 +368,55 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Color(0xFF1E88E5)),
                           )
-                        : const Icon(Icons.auto_awesome, size: 18),
-                    label: Text(
-                      _isAiGenerating
-                          ? appLocalizations.get('ai_generating')
-                          : appLocalizations.get('generate_ai_caption'),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF1E88E5),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      backgroundColor: const Color(0xFF1E88E5).withOpacity(0.1),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
-                    ),
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(appLocalizations.get('generate_caption')),
                   ),
-                  if (_imageFiles.length >= 2)
-                    TextButton.icon(
-                      onPressed: _isAiGenerating || _isStoryGenerating
-                          ? null
-                          : _generateAIAlbumStory,
-                      icon: _isStoryGenerating
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.purple),
-                            )
-                          : const Icon(Icons.auto_stories,
-                              size: 18, color: Colors.purple),
-                      label: Text(
-                        _isStoryGenerating
-                            ? 'AI is writing...'
-                            : appLocalizations.get('generate_ai_story'),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.purple),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.purple,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        backgroundColor: Colors.purple.withOpacity(0.1),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                      ),
-                    ),
                 ],
               ),
-            const SizedBox(height: 20),
-            if (_imageFiles.isNotEmpty)
-              SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _imageFiles.length,
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(right: 12),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12.0),
-                            child: Image.file(
-                              _imageFiles[index],
-                              fit: BoxFit.cover,
-                              width: 300,
-                              height: 200,
-                            ),
-                          ),
+            const SizedBox(height: 16),
+            if (_imageFile != null)
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: Image.file(_imageFile!,
+                        fit: BoxFit.cover, width: double.infinity),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _imageFile = null;
+                        });
+                      },
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
                         ),
-                        Positioned(
-                          top: 8,
-                          right: 20,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _imageFiles.removeAt(index);
-                              });
-                            },
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.close,
-                                  color: Colors.white, size: 20),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                        child:
+                            const Icon(Icons.close, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                ],
               ),
           ],
         ),
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(8.0),
-        child: IconButton(
-          icon: const Icon(Icons.photo_library,
-              color: Color(0xFF1E88E5), size: 30),
-          onPressed: _pickImages,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.photo_library,
+                  color: Color(0xFF1E88E5), size: 30),
+              onPressed: _pickImage,
+            ),
+          ],
         ),
       ),
     );

@@ -24,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _avatarUrl;
+  int? _currentUserId;
   List<Map<String, dynamic>> _posts = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
@@ -48,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (user != null && mounted) {
           setState(() {
             _avatarUrl = user['avatar_url'] as String?;
+            _currentUserId = user['id'] as int?;
           });
         }
       }
@@ -114,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           newPosts.add({
             'id': post['id'].toString(),
+            'user_id': post['user_id'],
             'author': authorName,
             'avatarUrl': avatarUrl,
             'time': post['created_at'],
@@ -151,6 +154,58 @@ class _HomeScreenState extends State<HomeScreen> {
       content: Text(message),
       backgroundColor: isError ? Colors.red : Colors.green,
     ));
+  }
+
+  Future<void> _deletePost(String postId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) return;
+
+    try {
+      final response = await http.delete(
+        Uri.parse(ApiConfig.deletePost(int.parse(postId))),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 204) {
+        _showSnackbar(AppLocalizations.of(context)!.get('delete_post_success'));
+        _fetchPosts();
+      } else {
+        _showSnackbar(AppLocalizations.of(context)!.get('delete_post_failed'),
+            isError: true);
+      }
+    } catch (e) {
+      _showSnackbar('Error deleting post: $e', isError: true);
+    }
+  }
+
+  void _confirmDelete(String postId) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(appLocalizations.get('delete_post_confirm_title')),
+        content: Text(appLocalizations.get('delete_post_confirm_message')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(appLocalizations.get('no_label')),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePost(postId);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(appLocalizations.get('yes_label')),
+          ),
+        ],
+      ),
+    );
   }
 
   // Function to format the post timestamp
@@ -407,6 +462,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(color: Colors.grey[600], fontSize: 12)),
             ],
           ),
+          const Spacer(),
+          if (_currentUserId != null &&
+              post['user_id'] != null &&
+              post['user_id'] == _currentUserId)
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'delete') {
+                  _confirmDelete(post['id']);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Delete', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

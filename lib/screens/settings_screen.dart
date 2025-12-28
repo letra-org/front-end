@@ -97,16 +97,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Ignore error and proceed with client-side logout
       }
     }
-    
+
     // Clear local data
     try {
-        final directory = await getApplicationDocumentsDirectory();
-        final file = File('${directory.path}/data/userdata.js');
-        if (await file.exists()) {
-            await file.delete();
-        }
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/data/userdata.js');
+      if (await file.exists()) {
+        await file.delete();
+      }
     } catch (e) {
-        print("Failed to delete user data: $e");
+      print("Failed to delete user data: $e");
     }
 
     if (mounted) {
@@ -118,7 +118,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+        final languageProvider =
+            Provider.of<LanguageProvider>(context, listen: false);
         final appLocalizations = AppLocalizations.of(context)!;
 
         return AlertDialog(
@@ -128,7 +129,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               ListTile(
                 leading: ClipOval(
-                  child: Image.asset('assets/images/flags/vn.png', width: 32, height: 32, fit: BoxFit.cover),
+                  child: Image.asset('assets/images/flags/vn.png',
+                      width: 32, height: 32, fit: BoxFit.cover),
                 ),
                 title: Text(appLocalizations.get('vietnamese')),
                 onTap: () {
@@ -140,7 +142,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               ListTile(
                 leading: ClipOval(
-                  child: Image.asset('assets/images/flags/gb.png', width: 32, height: 32, fit: BoxFit.cover),
+                  child: Image.asset('assets/images/flags/gb.png',
+                      width: 32, height: 32, fit: BoxFit.cover),
                 ),
                 title: Text(appLocalizations.get('english')),
                 onTap: () {
@@ -228,9 +231,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       placeholder: (context, url) =>
                                           const CircularProgressIndicator(),
                                       errorWidget: (context, url, error) =>
-                                          Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
+                                          Image.asset(
+                                              'assets/images/user/avatar.jpg',
+                                              fit: BoxFit.cover),
                                     )
-                                  : Image.asset('assets/images/user/avatar.jpg', fit: BoxFit.cover),
+                                  : Image.asset('assets/images/user/avatar.jpg',
+                                      fit: BoxFit.cover),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -243,14 +249,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
-                                    color: isDarkMode ? Colors.white : Colors.black,
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                                 Text(
                                   _email,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                    color: isDarkMode
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                                   ),
                                 ),
                               ],
@@ -264,14 +274,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 // Appearance
-                _buildSectionTitle(appLocalizations.get('appearance'), isDarkMode),
+                _buildSectionTitle(
+                    appLocalizations.get('appearance'), isDarkMode),
                 Card(
                   child: Column(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.dark_mode),
                         title: Text(appLocalizations.get('dark_mode')),
-                        subtitle: Text(appLocalizations.get('dark_mode_subtitle')),
+                        subtitle:
+                            Text(appLocalizations.get('dark_mode_subtitle')),
                         trailing: Switch(
                           value: isDarkMode,
                           onChanged: (value) => themeProvider.toggleTheme(),
@@ -286,7 +298,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             ClipOval(
                               child: Image.asset(
-                                languageProvider.currentLocale.languageCode == 'vi'
+                                languageProvider.currentLocale.languageCode ==
+                                        'vi'
                                     ? 'assets/images/flags/vn.png'
                                     : 'assets/images/flags/gb.png',
                                 width: 24,
@@ -296,7 +309,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              languageProvider.currentLocale.languageCode == 'vi'
+                              languageProvider.currentLocale.languageCode ==
+                                      'vi'
                                   ? appLocalizations.get('vietnamese')
                                   : appLocalizations.get('english'),
                             ),
@@ -309,18 +323,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Emergency
-                _buildSectionTitle(appLocalizations.get('emergency_section_title'), isDarkMode),
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.warning, color: Colors.red),
-                    title: Text(appLocalizations.get('emergency_title')),
-                    subtitle: Text(appLocalizations.get('emergency_subtitle')),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => widget.onNavigate('emergency'),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 // Account
                 _buildSectionTitle(appLocalizations.get('account'), isDarkMode),
                 Card(
@@ -329,7 +331,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: const Icon(Icons.lock),
                         title: Text(appLocalizations.get('change_password')),
-                        subtitle: Text(appLocalizations.get('change_password_subtitle')),
+                        subtitle: Text(
+                            appLocalizations.get('change_password_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('changePassword'),
                       ),
@@ -337,7 +340,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: const Icon(Icons.photo_library),
                         title: Text(appLocalizations.get('your_photos')),
-                        subtitle: Text(appLocalizations.get('your_photos_subtitle')),
+                        subtitle:
+                            Text(appLocalizations.get('your_photos_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('photos'),
                       ),
@@ -346,14 +350,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 // About
-                _buildSectionTitle(appLocalizations.get('about_us'), isDarkMode),
+                _buildSectionTitle(
+                    appLocalizations.get('about_us'), isDarkMode),
                 Card(
                   child: Column(
                     children: [
                       ListTile(
                         leading: const Icon(Icons.group),
                         title: Text(appLocalizations.get('development_team')),
-                        subtitle: Text(appLocalizations.get('development_team_subtitle')),
+                        subtitle: Text(
+                            appLocalizations.get('development_team_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('team'),
                       ),
@@ -361,7 +367,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: const Icon(Icons.star),
                         title: Text(appLocalizations.get('sponsors')),
-                        subtitle: Text(appLocalizations.get('sponsors_subtitle')),
+                        subtitle:
+                            Text(appLocalizations.get('sponsors_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('sponsors'),
                       ),
@@ -369,7 +376,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListTile(
                         leading: const Icon(Icons.info),
                         title: Text(appLocalizations.get('app_info')),
-                        subtitle: Text(appLocalizations.get('app_info_subtitle')),
+                        subtitle:
+                            Text(appLocalizations.get('app_info_subtitle')),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => widget.onNavigate('appInfo'),
                       ),
@@ -391,7 +399,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.red),
                           )
                         : Text(appLocalizations.get('logout')),
                   ),

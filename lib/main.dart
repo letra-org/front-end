@@ -20,7 +20,6 @@ import 'screens/create_post_screen.dart';
 import 'screens/team_screen.dart';
 import 'screens/sponsors_screen.dart';
 import 'screens/app_info_screen.dart';
-import 'screens/emergency_location_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/ai_landmark_result_screen.dart';
 import 'screens/reset_password_screen.dart';
@@ -233,9 +232,6 @@ class _AppNavigatorState extends State<AppNavigator> {
       case 'appInfo':
         return AppInfoScreen(
             key: const ValueKey('appInfo'), onNavigate: _navigateToScreen);
-      case 'emergency':
-        return EmergencyLocationScreen(
-            key: const ValueKey('emergency'), onNavigate: _navigateToScreen);
       case 'friends':
         return FriendsScreen(
             key: const ValueKey('friends'), onNavigate: _navigateToScreen);

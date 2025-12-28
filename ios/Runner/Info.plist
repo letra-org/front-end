@@ -56,5 +56,9 @@
 	<string>Ứng dụng cần truy cập máy ảnh để bạn có thể chụp ảnh và đăng bài.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Ứng dụng cần quyền để lưu ảnh vào bộ sưu tập của bạn.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ứng dụng cần truy cập vị trí của bạn để hỗ trợ trong trường hợp khận cấp.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Ứng dụng cần truy cập vị trí của bạn để hỗ trợ trong trường hợp khận cấp.</string>
 </dict>
 </plist>

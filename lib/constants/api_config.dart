@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'https://qfs40xd9-8000.asse.devtunnels.ms';
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
   // Auth
   static const String login = '$baseUrl/auth/login';
@@ -19,6 +19,7 @@ class ApiConfig {
   // Posts
   static const String createPost = '$baseUrl/posts/';
   static const String getPosts = '$baseUrl/posts/';
+  static String deletePost(int postId) => '$baseUrl/posts/$postId';
 
   // Friends
   static const String addFriend = '$baseUrl/friends/add';
@@ -51,5 +52,5 @@ class ApiConfig {
   static String getMessageHistory(String friendId) =>
       '$baseUrl/messages/$friendId';
   static const String friendChatWebSocket =
-      'ws://qfs40xd9-8000.asse.devtunnels.ms//ws/chat'; // Using 127.0.0.1 for better compatibility
+      'ws://127.0.0.1:8000//ws/chat'; // Using 127.0.0.1 for better compatibility
 }

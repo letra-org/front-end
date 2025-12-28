@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'single_purpose_camera_screen.dart';
+import 'post_detail_screen.dart';
 import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../constants/api_config.dart';
@@ -276,6 +277,76 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Future<void> _deletePost(int postId) async {
+    final token = await _getAuthToken();
+    if (token == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await http.delete(
+        Uri.parse(ApiConfig.deletePost(postId)),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 204) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    AppLocalizations.of(context)!.get('delete_post_success'))),
+          );
+          await _fetchUserPosts();
+        }
+      } else {
+        throw Exception(
+            AppLocalizations.of(context)!.get('delete_post_failed'));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting post: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _confirmDelete(int postId) {
+    final appLocalizations = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(appLocalizations.get('delete_post_confirm_title')),
+        content: Text(appLocalizations.get('delete_post_confirm_message')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(appLocalizations.get('no_label')),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePost(postId);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(appLocalizations.get('yes_label')),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appLocalizations = AppLocalizations.of(context)!;
@@ -459,12 +530,133 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          final post = _userPosts[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              title: Text(post['content'] ?? ''),
-              subtitle: Text(_formatPostTime(post['created_at'])),
+          final postData = _userPosts[index];
+
+          // Map data to match PostDetailScreen expectations (same as home_screen.dart)
+          final Map<String, dynamic> post = {
+            'id': postData['id'].toString(),
+            'user_id': postData['user_id'],
+            'author': _userInfo['full_name'] ?? 'User',
+            'avatarUrl': _userInfo['avatar_url'],
+            'time': postData['created_at'],
+            'content': postData['content'],
+            'imageUrl': postData['media_url'],
+            'likes': postData['likes_count'] ?? 0,
+            'comments': postData['comments_count'] ?? 0,
+          };
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => PostDetailScreen(post: post)),
+              );
+            },
+            child: Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header (Profile Info + Delete)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20, // Match home screen radius
+                          backgroundImage: post['avatarUrl'] != null
+                              ? CachedNetworkImageProvider(post['avatarUrl'])
+                              : null,
+                          child: post['avatarUrl'] == null
+                              ? const Icon(Icons.person, size: 24)
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              post['author'] ?? 'User',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              _formatPostTime(post['time']),
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'delete') {
+                              _confirmDelete(int.parse(post['id']));
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline,
+                                      color: Colors.red, size: 20),
+                                  SizedBox(width: 8),
+                                  Text('Delete',
+                                      style: TextStyle(color: Colors.red)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      post['content'] ?? '',
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  // Image
+                  if (post['imageUrl'] != null && post['imageUrl'].isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: post['imageUrl'],
+                      placeholder: (context, url) =>
+                          Container(height: 200, color: Colors.grey[200]),
+                      errorWidget: (context, url, error) =>
+                          const Icon(Icons.error),
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                    ),
+
+                  // Actions (Likes)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {},
+                          icon: Icon(Icons.thumb_up_outlined,
+                              size: 20, color: Colors.grey[700]),
+                          label: Text('${post['likes']}',
+                              style: TextStyle(color: Colors.grey[700])),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
