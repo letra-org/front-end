@@ -52,7 +52,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
         ]);
       }
     } catch (e) {
-      print('Error loading friend data: $e');
+      debugPrint('Error loading friend data: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -95,7 +95,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
         }
       }
     } catch (e) {
-      print("Error fetching friend info: $e");
+      debugPrint("Error fetching friend info: $e");
     }
   }
 
@@ -116,7 +116,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
         }
       }
     } catch (e) {
-      print("Error fetching friend posts: $e");
+      debugPrint("Error fetching friend posts: $e");
     }
   }
 

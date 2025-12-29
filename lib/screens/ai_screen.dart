@@ -277,8 +277,9 @@ class _AIScreenState extends State<AIScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _selectedThreadId == null)
+    if (_messageController.text.trim().isEmpty || _selectedThreadId == null) {
       return;
+    }
 
     final userMessage = _messageController.text.trim();
     _messageController.clear();
@@ -350,8 +351,9 @@ class _AIScreenState extends State<AIScreen> {
         _showError(errorMessage);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         _showError('${AppLocalizations.of(context)!.get('generic_error')}: $e');
+      }
     } finally {
       if (mounted) setState(() => _isSendingMessage = false);
     }
@@ -383,7 +385,7 @@ class _AIScreenState extends State<AIScreen> {
     final appLocalizations = AppLocalizations.of(context)!;
     return PopScope(
       canPop: !_isListView,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (!_isListView) {
           setState(() {

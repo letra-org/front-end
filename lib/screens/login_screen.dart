@@ -67,11 +67,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       await Directory(path).create(recursive: true);
       await file.writeAsString(userData);
-      print('User data saved successfully to: ${file.path}');
+      debugPrint('User data saved successfully to: ${file.path}');
     } catch (e) {
-      print('Failed to save user data: $e');
+      debugPrint('Failed to save user data: $e');
       if (mounted) {
-        _showErrorToast('Không thể lưu dữ liệu người dùng cục bộ: $e', backgroundColor: Colors.orange);
+        _showErrorToast('Không thể lưu dữ liệu người dùng cục bộ: $e',
+            backgroundColor: Colors.orange);
       }
     }
   }
@@ -79,7 +80,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate() || _isLoading) return;
 
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     final email = _emailController.text;
     final password = _passwordController.text;
@@ -87,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final prefs = await SharedPreferences.getInstance();
 
     if (email == 'dev@test.com' && password == 'dev') {
-      print('--- Performing local developer login ---');
+      debugPrint('--- Performing local developer login ---');
       const devToken = 'local_dev_token';
       final mockUserData = {
         'access_token': devToken,
@@ -96,7 +99,8 @@ class _LoginScreenState extends State<LoginScreen> {
           'id': 'dev-user-01',
           'email': 'dev@test.com',
           'full_name': 'Developer',
-          'avatar_url': 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png',
+          'avatar_url':
+              'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png',
           'is_active': true,
         }
       };
@@ -110,11 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final loginUrl = Uri.parse(ApiConfig.login);
 
     try {
-      final loginResponse = await http.post(
-        loginUrl,
-        headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 10));
+      final loginResponse = await http
+          .post(
+            loginUrl,
+            headers: {'Content-Type': 'application/json; charset=UTF-8'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (!mounted) return;
 
@@ -141,28 +147,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (userDetailsResponse.statusCode == 200) {
           final userDetails = json.decode(userDetailsResponse.body);
-          final finalUserData = { ...loginData, 'user': userDetails };
+          final finalUserData = {...loginData, 'user': userDetails};
           await _saveUserData(json.encode(finalUserData));
           widget.onLogin();
         } else {
-          throw Exception('Không thể lấy chi tiết người dùng. Mã lỗi: ${userDetailsResponse.statusCode}');
+          throw Exception(
+              'Không thể lấy chi tiết người dùng. Mã lỗi: ${userDetailsResponse.statusCode}');
         }
       } else if (loginResponse.statusCode == 422) {
         _showErrorToast(appLocalizations.get('invalid_credentials'));
       } else {
-        _showErrorToast('Đã xảy ra lỗi không xác định. Mã lỗi: ${loginResponse.statusCode}');
+        _showErrorToast(
+            'Đã xảy ra lỗi không xác định. Mã lỗi: ${loginResponse.statusCode}');
       }
     } catch (e) {
       if (mounted) {
-        _showErrorToast('Đã xảy ra lỗi: ${e.toString().replaceAll("Exception: ", "")}');
+        _showErrorToast(
+            'Đã xảy ra lỗi: ${e.toString().replaceAll("Exception: ", "")}');
       }
     } finally {
       if (mounted) {
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -230,7 +240,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withAlpha((255 * 0.3).toInt()),
+                              color:
+                                  Colors.black.withAlpha((255 * 0.3).toInt()),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
@@ -258,22 +269,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLabel(appLocalizations.get('account_label')),
+                              _buildLabel(
+                                  appLocalizations.get('account_label')),
                               const SizedBox(height: 8),
                               _buildTextField(
                                 controller: _emailController,
                                 focusNode: _emailFocusNode,
-                                hintText: appLocalizations.get('enter_your_email'),
+                                hintText:
+                                    appLocalizations.get('enter_your_email'),
                                 icon: Icons.email_outlined,
                                 validator: (value) {
-                                  if (value == null || value.isEmpty || !value.contains('@')) {
-                                    return appLocalizations.get('invalid_email_prompt');
+                                  if (value == null ||
+                                      value.isEmpty ||
+                                      !value.contains('@')) {
+                                    return appLocalizations
+                                        .get('invalid_email_prompt');
                                   }
                                   return null;
                                 },
                               ),
                               const SizedBox(height: 20),
-                              _buildLabel(appLocalizations.get('password_label')),
+                              _buildLabel(
+                                  appLocalizations.get('password_label')),
                               const SizedBox(height: 8),
                               _buildPasswordField(),
                               const SizedBox(height: 30),
@@ -292,8 +309,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   child: _isLoading
                                       ? const CircularProgressIndicator(
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                              Color(0xFF1E88E5)),
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Color(0xFF1E88E5)),
                                         )
                                       : Text(
                                           appLocalizations.get('login_button'),
@@ -374,7 +392,8 @@ class _LoginScreenState extends State<LoginScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: Colors.white.withAlpha((255 * 0.7).toInt())),
+        hintStyle:
+            TextStyle(color: Colors.white.withAlpha((255 * 0.7).toInt())),
         prefixIcon: Icon(icon, color: Colors.white, size: 22),
         filled: true,
         fillColor: Colors.white.withAlpha((255 * 0.2).toInt()),
@@ -400,8 +419,10 @@ class _LoginScreenState extends State<LoginScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: appLocalizations.get('enter_your_password'),
-        hintStyle: TextStyle(color: Colors.white.withAlpha((255 * 0.7).toInt())),
-        prefixIcon: const Icon(Icons.lock_outline, color: Colors.white, size: 22),
+        hintStyle:
+            TextStyle(color: Colors.white.withAlpha((255 * 0.7).toInt())),
+        prefixIcon:
+            const Icon(Icons.lock_outline, color: Colors.white, size: 22),
         suffixIcon: IconButton(
           icon: Icon(
             _isPasswordVisible ? Icons.visibility : Icons.visibility_off,

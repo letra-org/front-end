@@ -44,7 +44,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         return data['access_token'] as String?;
       }
     } catch (e) {
-      print("Lỗi khi lấy token: $e");
+      debugPrint("Lỗi khi lấy token: $e");
     }
     return null;
   }

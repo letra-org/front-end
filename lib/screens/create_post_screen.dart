@@ -55,7 +55,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         }
       }
     } catch (e) {
-      print("Lỗi khi tải dữ liệu người dùng trên create_post_screen: $e");
+      debugPrint("Lỗi khi tải dữ liệu người dùng trên create_post_screen: $e");
     }
   }
 
@@ -83,7 +83,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       });
                     }
                   } catch (e) {
-                    _showSnackbar(appLocalizations.get('pick_image_error'), isError: true);
+                    _showSnackbar(appLocalizations.get('pick_image_error'),
+                        isError: true);
                   }
                 },
               ),
@@ -144,15 +145,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       http.MultipartFile multipartFile;
       try {
         final mimeType = lookupMimeType(_imageFile!.path);
-        final contentType =
-            mimeType != null ? MediaType.parse(mimeType) : null;
+        final contentType = mimeType != null ? MediaType.parse(mimeType) : null;
         multipartFile = await http.MultipartFile.fromPath(
           'file', // Field name from the API spec
           _imageFile!.path,
           contentType: contentType,
         );
       } catch (e) {
-        print('Error setting content type for AI caption: $e');
+        debugPrint('Error setting content type for AI caption: $e');
         multipartFile = await http.MultipartFile.fromPath(
           'file', // Field name from the API spec
           _imageFile!.path,
@@ -198,7 +198,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _handlePost() async {
     final appLocalizations = AppLocalizations.of(context)!;
     if (_textController.text.trim().isEmpty && _imageFile == null) {
-      _showSnackbar(appLocalizations.get('create_post_validation_error'), isError: true);
+      _showSnackbar(appLocalizations.get('create_post_validation_error'),
+          isError: true);
       return;
     }
 
@@ -208,8 +209,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final token = prefs.getString('token');
 
     if (token == null) {
-      _showSnackbar(appLocalizations.get('auth_error'),
-          isError: true);
+      _showSnackbar(appLocalizations.get('auth_error'), isError: true);
       setState(() => _isLoading = false);
       return;
     }
@@ -242,7 +242,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
           );
         } catch (e) {
-          print('Error setting content type: $e');
+          debugPrint('Error setting content type: $e');
           // Fallback if mime detection fails
           request.files.add(
             await http.MultipartFile.fromPath(
@@ -396,8 +396,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           color: Colors.black54,
                           shape: BoxShape.circle,
                         ),
-                        child:
-                            const Icon(Icons.close, color: Colors.white, size: 20),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 20),
                       ),
                     ),
                   ),

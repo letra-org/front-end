@@ -54,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     } catch (e) {
-      print("Lỗi khi tải dữ liệu người dùng trên home_screen: $e");
+      debugPrint("Lỗi khi tải dữ liệu người dùng trên home_screen: $e");
     }
   }
 
@@ -110,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 avatarUrl = userData['avatar_url'];
               }
             } catch (e) {
-              print('Error fetching user $userId: $e');
+              debugPrint('Error fetching user $userId: $e');
             }
           }
 
@@ -121,7 +121,6 @@ class _HomeScreenState extends State<HomeScreen> {
             'avatarUrl': avatarUrl,
             'time': post['created_at'],
             'content': post['content'],
-            'imageUrl': post['media_url'],
             'imageUrl': post['media_url'],
             'likes': (post['likes'] as List?)?.length ?? 0,
             'liked_by': List<int>.from(post['likes'] ?? []),
@@ -174,6 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (response.statusCode == 204) {
+        if (!mounted) return;
+
         _showSnackbar(AppLocalizations.of(context)!.get('delete_post_success'));
         _fetchPosts();
       } else {
@@ -241,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
           post['likes'] = (post['likes'] as int) - 1;
         }
       });
-      print('Error liking post: $e');
+      debugPrint('Error liking post: $e');
     }
   }
 
@@ -332,8 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context)
                       .colorScheme
-                      .surfaceVariant
-                      .withOpacity(0.5),
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: TextField(
@@ -562,15 +563,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildLikeButton(post),
         ],
       ),
-    );
-  }
-
-  Widget _buildActionButton(
-      IconData icon, String label, VoidCallback onPressed) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20, color: Colors.grey[700]),
-      label: Text(label, style: TextStyle(color: Colors.grey[700])),
     );
   }
 

@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-      print("Lỗi khi tải dữ liệu người dùng trên settings_screen: $e");
+      debugPrint("Lỗi khi tải dữ liệu người dùng trên settings_screen: $e");
       if (mounted) {
         setState(() {
           _email = "Không thể tải dữ liệu";
@@ -74,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return data['access_token'] as String?;
       }
     } catch (e) {
-      print("Lỗi khi lấy token: $e");
+      debugPrint("Lỗi khi lấy token: $e");
     }
     return null;
   }
@@ -93,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           headers: {'Authorization': 'Bearer $token'},
         ).timeout(const Duration(seconds: 5));
       } catch (e) {
-        print("Logout API call failed: $e");
+        debugPrint("Logout API call failed: $e");
         // Ignore error and proceed with client-side logout
       }
     }
@@ -106,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await file.delete();
       }
     } catch (e) {
-      print("Failed to delete user data: $e");
+      debugPrint("Failed to delete user data: $e");
     }
 
     if (mounted) {

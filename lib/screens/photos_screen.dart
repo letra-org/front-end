@@ -58,7 +58,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
         });
       }
     } catch (e) {
-      print('Error loading albums: $e');
+      debugPrint('Error loading albums: $e');
     }
   }
 
@@ -68,7 +68,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
       final file = File('${directory.path}/albums.json');
       await file.writeAsString(json.encode(_albums));
     } catch (e) {
-      print('Error saving albums: $e');
+      debugPrint('Error saving albums: $e');
     }
   }
 
@@ -103,7 +103,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
         _photos = [];
       }
     } catch (e) {
-      print('Error loading photos: $e');
+      debugPrint('Error loading photos: $e');
       _photos = [];
     } finally {
       if (mounted) {
@@ -119,7 +119,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
       await photo.delete();
       _loadPhotos(); // Refresh the list
     } catch (e) {
-      print('Error deleting photo: $e');
+      debugPrint('Error deleting photo: $e');
     }
   }
 
@@ -137,7 +137,7 @@ class _PhotosScreenState extends State<PhotosScreen> {
       await File(image.path).copy('${photosDir.path}/$fileName');
       _loadPhotos(); // Refresh the list
     } catch (e) {
-      print('Error saving image: $e');
+      debugPrint('Error saving image: $e');
     }
   }
 

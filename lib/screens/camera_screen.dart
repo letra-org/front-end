@@ -42,7 +42,8 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_cameras == null || _cameras!.isEmpty) return;
 
     final cameraDescription = _cameras![_isFrontCamera ? 1 : 0];
-    _controller = CameraController(cameraDescription, ResolutionPreset.high, enableAudio: false);
+    _controller = CameraController(cameraDescription, ResolutionPreset.high,
+        enableAudio: false);
 
     try {
       await _controller!.initialize();
@@ -51,7 +52,7 @@ class _CameraScreenState extends State<CameraScreen> {
         _isReady = true;
       });
     } catch (e) {
-      print("Error initializing camera: $e");
+      debugPrint("Error initializing camera: $e");
     }
   }
 
@@ -89,27 +90,30 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
 
-    setState(() { _isProcessing = true; });
+    setState(() {
+      _isProcessing = true;
+    });
 
     try {
       final image = await _controller!.takePicture();
 
       if (_mode == CameraMode.normal) {
         if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-             await _sendToAIAndNavigate(image);
+          await _sendToAIAndNavigate(image);
         } else {
-            await _saveImageNormally(image);
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Ảnh đã được lưu!')),
-              );
-            }
+          await _saveImageNormally(image);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Ảnh đã được lưu!')),
+            );
+          }
         }
-      } else { // AI Mode
+      } else {
+        // AI Mode
         await _sendToAIAndNavigate(image);
       }
     } catch (e) {
-      print("Error during picture taking/processing: $e");
+      debugPrint("Error during picture taking/processing: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Lỗi: $e')),
@@ -117,7 +121,9 @@ class _CameraScreenState extends State<CameraScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() { _isProcessing = false; });
+        setState(() {
+          _isProcessing = false;
+        });
       }
     }
   }
@@ -140,7 +146,8 @@ class _CameraScreenState extends State<CameraScreen> {
     if (token == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
+          const SnackBar(
+              content: Text('Lỗi xác thực. Vui lòng đăng nhập lại.')),
         );
       }
       return;
@@ -163,11 +170,14 @@ class _CameraScreenState extends State<CameraScreen> {
       final responseBody = utf8.decode(response.bodyBytes);
       final result = jsonDecode(responseBody);
 
-      if (response.statusCode == 200 && result['success'] == true && result['data'] != null) {
+      if (response.statusCode == 200 &&
+          result['success'] == true &&
+          result['data'] != null) {
         final data = result['data'] as Map<String, dynamic>;
-        
+
         final name = data['Tên'] ?? 'N/A';
-        final engName = data['Tên tiếng Anh'] != null ? ' (${data['Tên tiếng Anh']})' : '';
+        final engName =
+            data['Tên tiếng Anh'] != null ? ' (${data['Tên tiếng Anh']})' : '';
         final intro = data['Giới thiệu'] ?? 'Không có thông tin.';
         final similarity = (data['Điểm similarity'] as num?)?.toDouble() ?? 0.0;
         final highlights = data['Điểm đặc sắc'] as List<dynamic>? ?? [];
@@ -206,8 +216,10 @@ $funFactsString
           data: {'markdownContent': resultString},
         );
       } else {
-        final String errorMessage = result['detail'] ?? 'Không nhận diện được địa danh từ ảnh. (${response.statusCode})';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+        final String errorMessage = result['detail'] ??
+            'Không nhận diện được địa danh từ ảnh. (${response.statusCode})';
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -216,13 +228,16 @@ $funFactsString
     }
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     if (!_isReady) {
-      return const Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(child: CircularProgressIndicator()));
     }
-    
-    final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -230,7 +245,7 @@ $funFactsString
         children: [
           CameraPreview(_controller!),
           if (_isProcessing) ...[
-            Container(color: Colors.black.withOpacity(0.5)),
+            Container(color: Colors.black.withValues(alpha: 0.5)),
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -238,7 +253,9 @@ $funFactsString
                   const CircularProgressIndicator(color: Colors.white),
                   const SizedBox(height: 16),
                   Text(
-                    _mode == CameraMode.ai ? "AI đang nhận diện..." : "Đang xử lý...",
+                    _mode == CameraMode.ai
+                        ? "AI đang nhận diện..."
+                        : "Đang xử lý...",
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
@@ -257,51 +274,59 @@ $funFactsString
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (!isDesktop) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildModeButton(CameraMode.normal, "Chụp ảnh"),
-                          const SizedBox(width: 20),
-                          _buildModeButton(CameraMode.ai, "AI Nhận diện"),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildModeButton(CameraMode.normal, "Chụp ảnh"),
+                        const SizedBox(width: 20),
+                        _buildModeButton(CameraMode.ai, "AI Nhận diện"),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
                   ] else ...[
-                       const Text(
-                        "Chế độ AI Landmark",
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 20),
+                    const Text(
+                      "Chế độ AI Landmark",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.flip_camera_ios, color: Colors.white, size: 30),
+                        icon: const Icon(Icons.flip_camera_ios,
+                            color: Colors.white, size: 30),
                         onPressed: _flipCamera,
                       ),
                       GestureDetector(
                         onTap: _takePicture,
                         child: Container(
-                          width: 70, height: 70,
+                          width: 70,
+                          height: 70,
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            border: Border.all(color: _mode == CameraMode.ai ? Colors.cyanAccent : Colors.white, width: 3)
-                          ),
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              border: Border.all(
+                                  color: _mode == CameraMode.ai
+                                      ? Colors.cyanAccent
+                                      : Colors.white,
+                                  width: 3)),
                         ),
                       ),
                       const SizedBox(width: 48), // Placeholder for symmetry
                     ],
                   ),
                 ],
-              ),  
+              ),
             ),
           ),
         ],
@@ -318,11 +343,15 @@ $funFactsString
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF1E88E5) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? const Color(0xFF1E88E5) : Colors.white, width: 1),
+          border: Border.all(
+              color: isSelected ? const Color(0xFF1E88E5) : Colors.white,
+              width: 1),
         ),
         child: Text(
           text,
-          style: TextStyle(color: Colors.white, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+          style: TextStyle(
+              color: Colors.white,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
         ),
       ),
     );

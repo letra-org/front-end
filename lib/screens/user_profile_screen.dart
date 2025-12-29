@@ -66,7 +66,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return data['access_token'] as String?;
       }
     } catch (e) {
-      print("Lỗi khi lấy token: $e");
+      debugPrint("Lỗi khi lấy token: $e");
     }
     return null;
   }
@@ -101,7 +101,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         }
       }
     } catch (e) {
-      print('LỖI KHI TẢI DỮ LIỆU: $e');
+      debugPrint('LỖI KHI TẢI DỮ LIỆU: $e');
     }
   }
 
@@ -130,7 +130,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         });
       }
     } catch (e) {
-      print("Lỗi khi tải bài viết của người dùng: $e");
+      debugPrint("Lỗi khi tải bài viết của người dùng: $e");
     }
   }
 
@@ -207,7 +207,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _uploadAvatar(image);
       }
     } catch (e) {
-      print("Error picking image from gallery: $e");
+      debugPrint("Error picking image from gallery: $e");
     }
   }
 
@@ -261,7 +261,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               content: Text(appLocalizations.get('avatar_update_success'))),
         );
       } else {
-        print("UPLOAD AVATAR ERROR: ${response.statusCode} - ${response.body}");
+        debugPrint(
+            "UPLOAD AVATAR ERROR: ${response.statusCode} - ${response.body}");
         throw Exception(
             '${appLocalizations.get('upload_failed')}${response.statusCode}');
       }
@@ -383,7 +384,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           post['likes_count'] = (post['likes_count'] as int) - 1;
         }
       });
-      print("Error toggling like: $e");
+      debugPrint("Error toggling like: $e");
     }
   }
 

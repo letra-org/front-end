@@ -49,7 +49,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         }
       }
     } catch (e) {
-      print("Error loading user data: $e");
+      debugPrint("Error loading user data: $e");
     }
   }
 
@@ -107,7 +107,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           _likedBy.add(_currentUserId!);
         }
       });
-      print("Error toggling like: $e");
+      debugPrint("Error toggling like: $e");
     }
   }
 

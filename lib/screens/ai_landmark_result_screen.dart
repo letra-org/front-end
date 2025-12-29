@@ -20,7 +20,7 @@ class AiLandmarkResultScreen extends StatelessWidget {
       await launchUrl(uri);
     } else {
       // Handle error
-      print('Could not launch $url');
+      debugPrint('Could not launch $url');
     }
   }
 
