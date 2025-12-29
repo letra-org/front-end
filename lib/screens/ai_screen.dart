@@ -212,24 +212,17 @@ class _AIScreenState extends State<AIScreen> {
         final List<Map<String, dynamic>> formattedMessages =
             historyMessages.map((msg) {
           final bool isUser = msg['role'] == 'user';
-          final messageType = msg['type'] ?? 'text';
+          final metadata = msg['metadata'] ?? {};
+          final messageType = metadata['type'] ?? msg['type'] ?? 'text';
           var content = msg['content'];
 
           if (messageType == 'recommendation') {
-            try {
-              if (content is String) content = json.decode(content);
-              return {
-                'isUser': isUser,
-                'type': 'recommendation',
-                'data': content
-              };
-            } catch (e) {
-              return {
-                'isUser': isUser,
-                'type': 'text',
-                'text': '(Invalid recommendation format)'
-              };
-            }
+            return {
+              'isUser': isUser,
+              'type': 'recommendation',
+              'text': content, // Keep the text content ("Đã tìm thấy...")
+              'data': metadata // Use metadata as the data source
+            };
           } else {
             return {
               'isUser': isUser,
@@ -541,7 +534,8 @@ class _AIScreenState extends State<AIScreen> {
     final isUser = message['isUser'] as bool;
 
     if (message['type'] == 'recommendation') {
-      return _buildRecommendationWidget(message['data']);
+      return _buildRecommendationWidget(message['data'],
+          messageText: message['text']);
     }
 
     return Align(
@@ -566,25 +560,50 @@ class _AIScreenState extends State<AIScreen> {
     );
   }
 
-  Widget _buildRecommendationWidget(Map<String, dynamic> recommendationData) {
+  Widget _buildRecommendationWidget(Map<String, dynamic> recommendationData,
+      {String? messageText}) {
     final List<dynamic> destinations = recommendationData['destinations'] ?? [];
-    final appLocalizations = AppLocalizations.of(context)!;
+    final appLocalizations = AppLocalizations.of(context);
     final summary = recommendationData['profile']?['summary'] ??
-        appLocalizations.get('ai_recommendation_summary');
+        appLocalizations?.get('ai_recommendation_summary') ??
+        'Summary';
 
     return Align(
       alignment: Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 1. Display the text content ("Đã tìm thấy...") as a bubble
+          if (messageText != null && messageText.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[800]
+                    : Colors.grey[200],
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                messageText,
+                style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87),
+              ),
+            ),
+
+          // 2. Summary
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(summary,
                 style: TextStyle(
                     color: Colors.grey[600], fontStyle: FontStyle.italic)),
           ),
-          Container(
-            height: 350,
+
+          // 3. Carousel of cards
+          SizedBox(
+            height: 380, // Increased height for better fit
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: destinations.length,

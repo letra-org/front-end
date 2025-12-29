@@ -122,7 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
             'time': post['created_at'],
             'content': post['content'],
             'imageUrl': post['media_url'],
-            'likes': post['likes_count'] ?? 0,
+            'imageUrl': post['media_url'],
+            'likes': (post['likes'] as List?)?.length ?? 0,
+            'liked_by': List<int>.from(post['likes'] ?? []),
             'comments': post['comments_count'] ?? 0,
           });
         }
@@ -180,6 +182,66 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       _showSnackbar('Error deleting post: $e', isError: true);
+    }
+  }
+
+  Future<void> _toggleLike(String postId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return;
+
+    // Optimistic update
+    final int index = _posts.indexWhere((p) => p['id'] == postId);
+    if (index == -1 || _currentUserId == null) return;
+
+    final post = _posts[index];
+    final List<int> likedBy = post['liked_by'];
+    final bool isLiked = likedBy.contains(_currentUserId);
+
+    setState(() {
+      if (isLiked) {
+        likedBy.remove(_currentUserId);
+        post['likes'] = (post['likes'] as int) - 1;
+      } else {
+        likedBy.add(_currentUserId!);
+        post['likes'] = (post['likes'] as int) + 1;
+      }
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.likePost(postId)),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        // Revert on failure
+        setState(() {
+          if (isLiked) {
+            likedBy.add(_currentUserId!);
+            post['likes'] = (post['likes'] as int) + 1;
+          } else {
+            likedBy.remove(_currentUserId);
+            post['likes'] = (post['likes'] as int) - 1;
+          }
+        });
+        _showSnackbar('Failed to like post', isError: true);
+      }
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        if (isLiked) {
+          likedBy.add(_currentUserId!);
+          post['likes'] = (post['likes'] as int) + 1;
+        } else {
+          likedBy.remove(_currentUserId);
+          post['likes'] = (post['likes'] as int) - 1;
+        }
+      });
+      print('Error liking post: $e');
     }
   }
 
@@ -497,8 +559,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          _buildActionButton(
-              Icons.thumb_up_outlined, '${post['likes']}', () {}),
+          _buildLikeButton(post),
         ],
       ),
     );
@@ -510,6 +571,28 @@ class _HomeScreenState extends State<HomeScreen> {
       onPressed: onPressed,
       icon: Icon(icon, size: 20, color: Colors.grey[700]),
       label: Text(label, style: TextStyle(color: Colors.grey[700])),
+    );
+  }
+
+  Widget _buildLikeButton(Map<String, dynamic> post) {
+    final List<int> likedBy = post['liked_by'] ?? [];
+    final bool isLiked =
+        _currentUserId != null && likedBy.contains(_currentUserId);
+
+    return TextButton.icon(
+      onPressed: () => _toggleLike(post['id']),
+      icon: Icon(
+        isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+        size: 20,
+        color: isLiked ? Colors.blue : Colors.grey[700],
+      ),
+      label: Text(
+        '${post['likes']}',
+        style: TextStyle(
+          color: isLiked ? Colors.blue : Colors.grey[700],
+          fontWeight: isLiked ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
     );
   }
 

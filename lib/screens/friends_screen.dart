@@ -132,18 +132,26 @@ class _FriendsScreenState extends State<FriendsScreen> {
         final List<dynamic> messages =
             json.decode(utf8.decode(response.bodyBytes));
         if (messages.isNotEmpty) {
-          final lastMsg = messages.last; // Assuming last in list is latest
+          final lastMsg = messages.first; // Backend returns newest first
+          final content = lastMsg['content'] ?? '';
+          final senderId = lastMsg['sender_id']?.toString() ?? '';
+
+          String displayMsg = content;
+          // If sender is not the friend, it's me
+          if (senderId != friendId) {
+            displayMsg = "Bạn: $content";
+          }
+
           if (mounted) {
             setState(() {
-              _allFriends[index]['last_message'] = lastMsg['content'] ?? '';
+              _allFriends[index]['last_message'] = displayMsg;
               _allFriends[index]['last_message_time'] =
                   lastMsg['created_at'] ?? '';
               // Also update filtered list if it contains this friend
               int filteredIdx =
                   _filteredFriends.indexWhere((f) => f['id'] == friendId);
               if (filteredIdx != -1) {
-                _filteredFriends[filteredIdx]['last_message'] =
-                    lastMsg['content'] ?? '';
+                _filteredFriends[filteredIdx]['last_message'] = displayMsg;
                 _filteredFriends[filteredIdx]['last_message_time'] =
                     lastMsg['created_at'] ?? '';
               }
@@ -386,7 +394,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                       friendAvatar: avatarUrl,
                                     ),
                                   ),
-                                );
+                                ).then((_) => _fetchData());
                               },
                               leading: GestureDetector(
                                 onTap: () {

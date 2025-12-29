@@ -20,6 +20,7 @@ class ApiConfig {
   static const String createPost = '$baseUrl/posts/';
   static const String getPosts = '$baseUrl/posts/';
   static String deletePost(int postId) => '$baseUrl/posts/$postId';
+  static String likePost(String postId) => '$baseUrl/posts/$postId/like';
 
   // Friends
   static const String addFriend = '$baseUrl/friends/add';
@@ -52,5 +53,9 @@ class ApiConfig {
   static String getMessageHistory(String friendId) =>
       '$baseUrl/messages/$friendId';
   static const String friendChatWebSocket =
-      'ws://127.0.0.1:8000//ws/chat'; // Using 127.0.0.1 for better compatibility
+      'ws://127.0.0.1:8000/ws/chat'; // Using 127.0.0.1 for better compatibility
+
+  static const String notificationUnreadCount = '$baseUrl/chat/unread-count';
+  static String markMessagesRead(String friendId) =>
+      '$baseUrl/chat/messages/$friendId/read';
 }

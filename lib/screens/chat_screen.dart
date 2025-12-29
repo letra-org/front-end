@@ -221,7 +221,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           setState(() {
             _messages.clear();
-            for (var msg in historyData.reversed) {
+            for (var msg in historyData) {
               _messages.add(Map<String, dynamic>.from(msg));
             }
           });
@@ -419,7 +419,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            _formatTimestamp(message['timestamp']),
+                            _formatTimestamp(message),
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 10,
@@ -439,10 +439,15 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  String _formatTimestamp(String? timestamp) {
+  String _formatTimestamp(Map<String, dynamic> message) {
+    // Try to find a valid timestamp field
+    final timestamp =
+        message['timestamp'] ?? message['sent_at'] ?? message['created_at'];
+
     if (timestamp == null) return '';
     try {
-      final DateTime dt = DateTime.parse(timestamp);
+      // Adjust to local time
+      final DateTime dt = DateTime.parse(timestamp).toLocal();
       return "${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
     } catch (e) {
       return '';

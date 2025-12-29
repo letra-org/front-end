@@ -122,7 +122,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (response.statusCode == 200) {
         final posts = json.decode(utf8.decode(response.bodyBytes)) as List;
         setState(() {
-          _userPosts = List<Map<String, dynamic>>.from(posts);
+          _userPosts = List<Map<String, dynamic>>.from(posts.map((post) => {
+                ...post,
+                'liked_by': List<int>.from(post['likes'] ?? []),
+                'likes_count': post['likes_count'] ?? 0,
+              }));
         });
       }
     } catch (e) {
@@ -319,6 +323,67 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _toggleLike(int postId) async {
+    final token = await _getAuthToken();
+    if (token == null) return;
+
+    final currentUserId = _userInfo['id'];
+    if (currentUserId == null) return;
+
+    final int index = _userPosts.indexWhere((p) => p['id'] == postId);
+    if (index == -1) return;
+
+    final post = _userPosts[index];
+    final List<int> likedBy = post['liked_by'];
+    final bool isLiked = likedBy.contains(currentUserId);
+
+    // Optimistic update
+    setState(() {
+      if (isLiked) {
+        likedBy.remove(currentUserId);
+        post['likes_count'] = (post['likes_count'] as int) - 1;
+      } else {
+        likedBy.add(currentUserId);
+        post['likes_count'] = (post['likes_count'] as int) + 1;
+      }
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.likePost(postId.toString())),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        // Revert
+        setState(() {
+          if (isLiked) {
+            likedBy.add(currentUserId);
+            post['likes_count'] = (post['likes_count'] as int) + 1;
+          } else {
+            likedBy.remove(currentUserId);
+            post['likes_count'] = (post['likes_count'] as int) - 1;
+          }
+        });
+      }
+    } catch (e) {
+      // Revert
+      setState(() {
+        if (isLiked) {
+          likedBy.add(currentUserId);
+          post['likes_count'] = (post['likes_count'] as int) + 1;
+        } else {
+          likedBy.remove(currentUserId);
+          post['likes_count'] = (post['likes_count'] as int) - 1;
+        }
+      });
+      print("Error toggling like: $e");
     }
   }
 
@@ -542,6 +607,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             'content': postData['content'],
             'imageUrl': postData['media_url'],
             'likes': postData['likes_count'] ?? 0,
+            'liked_by': postData['liked_by'] ?? [],
             'comments': postData['comments_count'] ?? 0,
           };
 
@@ -645,13 +711,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        TextButton.icon(
-                          onPressed: () {},
-                          icon: Icon(Icons.thumb_up_outlined,
-                              size: 20, color: Colors.grey[700]),
-                          label: Text('${post['likes']}',
-                              style: TextStyle(color: Colors.grey[700])),
-                        ),
+                        _buildLikeButton(post, postData['id']),
                       ],
                     ),
                   ),
@@ -661,6 +721,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           );
         },
         childCount: _userPosts.length,
+      ),
+    );
+  }
+
+  Widget _buildLikeButton(Map<String, dynamic> post, int postId) {
+    // Note: post is the mapped data for detail screen, but we need the raw list for reference updates
+    // Actually we can use the post data provided since we map it directly
+    final List<int> likedBy = List<int>.from(post['liked_by'] ?? []);
+    final currentUserId = _userInfo['id'];
+    final bool isLiked =
+        currentUserId != null && likedBy.contains(currentUserId);
+
+    return TextButton.icon(
+      onPressed: () => _toggleLike(postId),
+      icon: Icon(
+        isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+        size: 20,
+        color: isLiked ? Colors.blue : Colors.grey[700],
+      ),
+      label: Text(
+        '${post['likes']}',
+        style: TextStyle(
+          color: isLiked ? Colors.blue : Colors.grey[700],
+          fontWeight: isLiked ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
     );
   }

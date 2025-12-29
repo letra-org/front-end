@@ -26,6 +26,8 @@ class AiLandmarkResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: Column(
         children: [
@@ -51,7 +53,7 @@ class AiLandmarkResultScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                ), 
+                ),
               ),
             ),
           ),
@@ -66,16 +68,28 @@ class AiLandmarkResultScreen extends StatelessWidget {
                 }
               },
               styleSheet: MarkdownStyleSheet(
-                h3: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E88E5)),
-                p: const TextStyle(fontSize: 16, height: 1.5),
+                h3: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E88E5)),
+                p: TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                    color: isDarkMode ? Colors.white : Colors.black87),
                 strong: const TextStyle(fontWeight: FontWeight.bold),
-                listBullet: const TextStyle(fontSize: 16, height: 1.5),
-                blockquote: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+                listBullet: TextStyle(
+                    fontSize: 16,
+                    height: 1.5,
+                    color: isDarkMode ? Colors.white : Colors.black87),
+                blockquote: TextStyle(
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                    color: isDarkMode ? Colors.white : Colors.black87),
                 blockquoteDecoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  border: const Border(left: BorderSide(color: Colors.blue, width: 5)),
-                  borderRadius: BorderRadius.circular(4)
-                ),
+                    color: isDarkMode ? Colors.grey[800] : Colors.blue.shade50,
+                    border: const Border(
+                        left: BorderSide(color: Colors.blue, width: 5)),
+                    borderRadius: BorderRadius.circular(4)),
                 blockquotePadding: const EdgeInsets.all(12),
               ),
             ),
