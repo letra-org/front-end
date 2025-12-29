@@ -27,6 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
+  String _selectedCountryCode = '+84';
 
   @override
   void dispose() {
@@ -51,7 +52,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final phone = _phoneController.text;
       final password = _passwordController.text;
 
-      final formattedPhone = '+84${phone.startsWith('0') ? phone.substring(1) : phone}';
+      final formattedPhone =
+          '$_selectedCountryCode${phone.startsWith('0') ? phone.substring(1) : phone}';
 
       final url = Uri.parse(ApiConfig.create);
 
@@ -138,7 +140,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   IconButton(
                     onPressed: widget.onBackToLogin,
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.white),
                     tooltip: 'Quay lại',
                   ),
                   const Text(
@@ -155,7 +158,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -165,9 +169,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: _buildInputDecoration(hintText: 'Ví dụ: user123', icon: Icons.person_outline),
+                          decoration: _buildInputDecoration(
+                              hintText: 'Ví dụ: user123',
+                              icon: Icons.person_outline),
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Vui lòng nhập tên người dùng';
+                            if (value == null || value.isEmpty)
+                              return 'Vui lòng nhập tên người dùng';
                             return null;
                           },
                         ),
@@ -176,9 +183,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _fullNameController,
-                          decoration: _buildInputDecoration(hintText: 'Ví dụ: Nguyễn Văn A', icon: Icons.badge_outlined),
+                          decoration: _buildInputDecoration(
+                              hintText: 'Ví dụ: Nguyễn Văn A',
+                              icon: Icons.badge_outlined),
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Vui lòng nhập họ tên của bạn';
+                            if (value == null || value.isEmpty)
+                              return 'Vui lòng nhập họ tên của bạn';
                             return null;
                           },
                         ),
@@ -188,27 +198,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: _buildInputDecoration(hintText: 'email@example.com', icon: Icons.email_outlined),
+                          decoration: _buildInputDecoration(
+                              hintText: 'email@example.com',
+                              icon: Icons.email_outlined),
                           validator: (value) {
-                            if (value == null || value.isEmpty) return 'Email không được để trống';
-                            final emailRegex = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
-                            if (!emailRegex.hasMatch(value)) return 'Email không hợp lệ';
+                            if (value == null || value.isEmpty)
+                              return 'Email không được để trống';
+                            final emailRegex = RegExp(
+                                r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+                            if (!emailRegex.hasMatch(value))
+                              return 'Email không hợp lệ';
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
                         _buildLabel('Số điện thoại'),
                         const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          decoration: _buildInputDecoration(hintText: 'Ví dụ: 0912345678', icon: Icons.phone_outlined),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Số điện thoại không được để trống';
-                            final phoneRegex = RegExp(r'^0[0-9]{9}$');
-                            if (!phoneRegex.hasMatch(value)) return 'Số điện thoại không hợp lệ (gồm 10 số)';
-                            return null;
-                          },
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedCountryCode,
+                                  dropdownColor: const Color(0xFF1565C0),
+                                  icon: const Icon(Icons.arrow_drop_down,
+                                      color: Colors.white),
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: '+84', child: Text('🇻🇳 +84')),
+                                    DropdownMenuItem(
+                                        value: '+1', child: Text('🇺🇸 +1')),
+                                    DropdownMenuItem(
+                                        value: '+44', child: Text('🇬🇧 +44')),
+                                    DropdownMenuItem(
+                                        value: '+86', child: Text('🇨🇳 +86')),
+                                    DropdownMenuItem(
+                                        value: '+81', child: Text('🇯🇵 +81')),
+                                    DropdownMenuItem(
+                                        value: '+82', child: Text('🇰🇷 +82')),
+                                    DropdownMenuItem(
+                                        value: '+66', child: Text('🇹🇭 +66')),
+                                    DropdownMenuItem(
+                                        value: '+65', child: Text('🇸🇬 +65')),
+                                  ],
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setState(() {
+                                        _selectedCountryCode = newValue;
+                                      });
+                                    }
+                                  },
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _phoneController,
+                                keyboardType: TextInputType.phone,
+                                decoration: _buildInputDecoration(
+                                    hintText: 'Ví dụ: 0912345678',
+                                    icon: Icons.phone_outlined),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty)
+                                    return 'Số điện thoại không được để trống';
+                                  final phoneRegex = RegExp(r'^0[0-9]{9}$');
+                                  if (!phoneRegex.hasMatch(value))
+                                    return 'Số điện thoại không hợp lệ (gồm 10 số)';
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 18),
                         _buildLabel('Mật khẩu'),
@@ -216,9 +290,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,
-                          decoration: _buildInputDecoration(hintText: 'Nhập mật khẩu của bạn', icon: Icons.lock_outline),
+                          decoration: _buildInputDecoration(
+                              hintText: 'Nhập mật khẩu của bạn',
+                              icon: Icons.lock_outline),
                           validator: (value) {
-                            if (value == null || value.length < 12) return 'Mật khẩu phải có ít nhất 12 ký tự';
+                            if (value == null || value.length < 12)
+                              return 'Mật khẩu phải có ít nhất 12 ký tự';
                             return null;
                           },
                         ),
@@ -228,9 +305,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: true,
-                          decoration: _buildInputDecoration(hintText: 'Nhập lại mật khẩu', icon: Icons.lock_person_outlined),
+                          decoration: _buildInputDecoration(
+                              hintText: 'Nhập lại mật khẩu',
+                              icon: Icons.lock_person_outlined),
                           validator: (value) {
-                            if (value != _passwordController.text) return 'Mật khẩu không khớp';
+                            if (value != _passwordController.text)
+                              return 'Mật khẩu không khớp';
                             return null;
                           },
                         ),
@@ -242,12 +322,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: const Color(0xFF1E88E5),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                               elevation: 5,
                             ),
                             child: _isLoading
-                                ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E88E5)))
-                                : const Text('Đăng ký', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                ? const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF1E88E5)))
+                                : const Text('Đăng ký',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold)),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -256,7 +342,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             onPressed: widget.onBackToLogin,
                             child: Text(
                               'Đã có tài khoản? Đăng nhập ngay',
-                              style: TextStyle(color: Colors.white.withAlpha((255*0.9).toInt()), fontSize: 15),
+                              style: TextStyle(
+                                  color: Colors.white
+                                      .withAlpha((255 * 0.9).toInt()),
+                                  fontSize: 15),
                             ),
                           ),
                         ),
@@ -275,20 +364,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+      style: const TextStyle(
+          color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
     );
   }
 
-  InputDecoration _buildInputDecoration({required String hintText, required IconData icon}) {
+  InputDecoration _buildInputDecoration(
+      {required String hintText, required IconData icon}) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
       prefixIcon: Icon(icon, color: Colors.white, size: 22),
       filled: true,
       fillColor: Colors.white.withOpacity(0.2),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white, width: 1.5)),
-      errorStyle: const TextStyle(color: Color(0xFFFFD600), fontWeight: FontWeight.bold),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white, width: 1.5)),
+      errorStyle: const TextStyle(
+          color: Color(0xFFFFD600), fontWeight: FontWeight.bold),
     );
   }
 }
